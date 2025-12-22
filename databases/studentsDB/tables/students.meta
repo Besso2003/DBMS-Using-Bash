@@ -1,0 +1,4 @@
+#column_name:datatype:constraint
+id:int:PK
+name:string
+age:int
