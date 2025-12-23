@@ -1,4 +1,4 @@
-#column_name:datatype:constraint
-id:int:PK
-name:string
-age:int
+pk=1
+columns=3
+types=int:string:int
+names=id:name:age
