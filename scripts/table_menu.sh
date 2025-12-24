@@ -28,7 +28,7 @@ while true; do
             echo "Drop Table (to be implemented)"
             ;;
         4)
-            echo "Insert Into Table (to be implemented)"
+            ./scripts/insertion.sh "$db_path"
             ;;
         5)
             echo "Select From Table (to be implemented)"
