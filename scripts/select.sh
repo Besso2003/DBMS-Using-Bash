@@ -72,7 +72,7 @@ if [ -z "$COL_INDEX" ]; then
 fi
 
 # Determine column type
-COL_TYPE=$(echo "$TYPES" | awk -F':' -v idx="$COL_INDEX" '{split($0,a,FS); print a[idx]}')
+COL_TYPE=$(echo "$TYPES" | awk -F':' -v idx="$COL_INDEX" '{for(i=1;i<=NF;i++) if(i==idx){print $i; exit}}')
 
 is_numeric() {
     case "$1" in
