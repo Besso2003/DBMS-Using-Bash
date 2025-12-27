@@ -1,0 +1,4 @@
+pk=1
+columns=5
+types=int:string:int:string:int
+names=id:name:age:department:salary
