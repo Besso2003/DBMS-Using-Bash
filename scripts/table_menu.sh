@@ -2,24 +2,32 @@
 
 db_path="$1"   # the path to the selected database
 
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 while true; do
-    echo
-    echo "------ TABLE MENU ------"
-    echo "1) Create Table"
-    echo "2) List Tables"
-    echo "3) Drop Table"
-    echo "4) Insert Into Table"
-    echo "5) Select From Table"
-    echo "6) Delete From Table"
-    echo "7) Update Table"
-    echo "8) Back to Main Menu"
-    echo "------------------------"
+    clear
+    echo -e "${BLUE}==================== TABLE MENU ====================${NC}"
+    echo -e "${YELLOW}1)${NC} Create Table"
+    echo -e "${YELLOW}2)${NC} List Tables"
+    echo -e "${YELLOW}3)${NC} Drop Table"
+    echo -e "${YELLOW}4)${NC} Insert Into Table"
+    echo -e "${YELLOW}5)${NC} Select From Table"
+    echo -e "${YELLOW}6)${NC} Delete From Table"
+    echo -e "${YELLOW}7)${NC} Update Table"
+    echo -e "${YELLOW}8)${NC} Back to Main Menu"
+    echo -e "${BLUE}====================================================${NC}"
 
     read -p "Enter your choice [1-8]: " choice
 
     case $choice in
         1)
-            ./scripts/create_table.sh "$db_path"   # pass the correct db path
+            clear
+            ./scripts/create_table.sh "$db_path"
             ;;
         2)
             echo "List Tables (to be implemented)"
@@ -34,7 +42,8 @@ while true; do
             echo "Select From Table (to be implemented)"
             ;;
         6)
-            echo "Delete from Table (to be implemented)"
+            clear
+            ./scripts/delete_from_table.sh "$db_path"
             ;;
         7)
             echo "Update Table (to be implemented)"

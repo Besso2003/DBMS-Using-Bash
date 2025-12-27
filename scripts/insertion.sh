@@ -1,22 +1,63 @@
 #!/bin/bash
 
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+CYAN="\e[36m"
+RESET="\e[0m"
+
 db_path="$1"
 tables_path="$db_path/tables"
 
-read -p "Enter Table Name: " table_name
+clear
+echo -e "${CYAN}===== INSERT INTO TABLE =====${RESET}"
 
-meta_file="$tables_path/$table_name.meta"
-data_file="$tables_path/$table_name.db"
 
-# Validate table existence
-[ ! -f "$meta_file" ] && echo "Error: Table '$table_name' does not exist." && exit 1
-[ ! -f "$data_file" ] && echo "Error: Data file for table '$table_name' does not exist." && exit 1
+# Function: Validate input
+get_valid_input() {
+    local prompt="$1"
+    local type="$2"
+    local value
 
+    while true; do
+        read -p "$prompt" value
+
+        if [ "$type" = "int" ]; then
+            if [[ ! "$value" =~ ^-?[0-9]+$ ]]; then
+                echo -e "${RED}Invalid integer. Try again.${RESET}"
+                continue
+            fi
+        else
+            if [ -z "$value" ]; then
+                echo -e "${RED}Value cannot be empty. Try again.${RESET}"
+                continue
+            fi
+        fi
+
+        echo "$value"
+        return
+    done
+}
+
+# Get Table Name
+while true; do
+    read -p "Enter Table Name: " table_name
+    meta_file="$tables_path/$table_name.meta"
+    data_file="$tables_path/$table_name.db"
+
+    if [ -z "$table_name" ]; then
+        echo -e "${RED}Error:${RESET} Table name cannot be empty."
+    elif [ ! -f "$meta_file" ]; then
+        echo -e "${RED}Error:${RESET} Table '$table_name' does not exist."
+    elif [ ! -f "$data_file" ]; then
+        echo -e "${RED}Error:${RESET} Data file for table '$table_name' does not exist."
+    else
+        break
+    fi
+done
+
+# Load metadata
 source "$meta_file"
-
-# Validate metadata
-[[ ! "$pk" =~ ^[0-9]+$ ]] && echo "Corrupted metadata (pk)" && exit 1
-[[ ! "$columns" =~ ^[0-9]+$ ]] && echo "Corrupted metadata (columns)" && exit 1
 
 IFS=':' read -ra col_names <<< "$names"
 IFS=':' read -ra col_types <<< "$types"
@@ -24,26 +65,17 @@ IFS=':' read -ra col_types <<< "$types"
 row=()
 pk_value=""
 
-# ----------------------------
-# Read row values (with loops)
-# ----------------------------
+echo -e "\n${YELLOW}Enter values for the new row:${RESET}"
+
+# Read row values with validation
 for ((i=0; i<columns; i++)); do
     while true; do
-        read -p "Enter ${col_names[i]} (${col_types[i]}): " value
+        value=$(get_valid_input "Enter ${col_names[i]} (${col_types[i]}): " "${col_types[i]}")
 
-        # INT validation
-        if [ "${col_types[i]}" = "int" ]; then
-            [[ ! "$value" =~ ^-?[0-9]+$ ]] && \
-                echo "Invalid integer. Try again." && continue
-        else
-            [ -z "$value" ] && \
-                echo "Value cannot be empty. Try again." && continue
-        fi
-
-        # Primary Key validation
+        # Primary Key uniqueness validation
         if [ $((i+1)) -eq "$pk" ]; then
             if cut -d: -f"$pk" "$data_file" | grep -qx "$value"; then
-                echo "Duplicate primary key. Enter a unique value."
+                echo -e "${RED}Duplicate primary key. Enter a unique value.${RESET}"
                 continue
             fi
             pk_value="$value"
@@ -54,7 +86,9 @@ for ((i=0; i<columns; i++)); do
     done
 done
 
-# Insert row
+# Insert row into data file
 echo "$(IFS=:; echo "${row[*]}")" >> "$data_file"
+echo -e "${GREEN}Row inserted successfully into table '$table_name'.${RESET}"
 
-echo "Row inserted successfully"
+read -p $'\nPress Enter to return to Table Menu...'
+clear
