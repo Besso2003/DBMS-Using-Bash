@@ -1,3 +1,5 @@
+#!/bin/bash
+
 db_path="$1"
 tables_path="$db_path/tables"
 
@@ -7,51 +9,52 @@ meta_file="$tables_path/$table_name.meta"
 data_file="$tables_path/$table_name.db"
 
 # Validate table existence
-if [ ! -f "$meta_file" ]; then
-    echo "Error: Table '$table_name' does not exist."
-    exit 1
-fi
-
-if [ ! -f "$data_file" ]; then
-    echo "Error: Data file for table '$table_name' does not exist."
-    exit 1
-fi
+[ ! -f "$meta_file" ] && echo "Error: Table '$table_name' does not exist." && exit 1
+[ ! -f "$data_file" ] && echo "Error: Data file for table '$table_name' does not exist." && exit 1
 
 source "$meta_file"
 
-# validate metadata
+# Validate metadata
 [[ ! "$pk" =~ ^[0-9]+$ ]] && echo "Corrupted metadata (pk)" && exit 1
 [[ ! "$columns" =~ ^[0-9]+$ ]] && echo "Corrupted metadata (columns)" && exit 1
 
-# Read metadata
-
-IFS=':' read -ra  col_names <<< "$names"
-IFS=':' read -ra  col_types <<< "$types"
+IFS=':' read -ra col_names <<< "$names"
+IFS=':' read -ra col_types <<< "$types"
 
 row=()
 pk_value=""
 
+# ----------------------------
+# Read row values (with loops)
+# ----------------------------
 for ((i=0; i<columns; i++)); do
-    read -p "Enter ${col_names[i]} (${col_types[i]}): " value
+    while true; do
+        read -p "Enter ${col_names[i]} (${col_types[i]}): " value
 
-    # type validation
-    if [ "${col_types[i]}" = "int" ]; then
-        [[ ! "$value" =~ ^-?[0-9]+$ ]] && echo "Invalid integer for ${col_names[i]}" && exit 1
-    else
-        [ -z "$value" ] && echo "${col_names[i]} cannot be empty" && exit 1
-    fi
+        # INT validation
+        if [ "${col_types[i]}" = "int" ]; then
+            [[ ! "$value" =~ ^-?[0-9]+$ ]] && \
+                echo "Invalid integer. Try again." && continue
+        else
+            [ -z "$value" ] && \
+                echo "Value cannot be empty. Try again." && continue
+        fi
 
-    [ $((i+1)) -eq "$pk" ] && pk_value="$value"
+        # Primary Key validation
+        if [ $((i+1)) -eq "$pk" ]; then
+            if cut -d: -f"$pk" "$data_file" | grep -qx "$value"; then
+                echo "Duplicate primary key. Enter a unique value."
+                continue
+            fi
+            pk_value="$value"
+        fi
 
-    row+=("$value")
+        row+=("$value")
+        break
+    done
 done
 
-# Check for primary key uniqueness
-if cut -d: -f"$pk" "$data_file" | grep -qx "$pk_value"; then
-    echo "Error: Duplicate primary key value"
-    exit 1
-fi
-
+# Insert row
 echo "$(IFS=:; echo "${row[*]}")" >> "$data_file"
 
 echo "Row inserted successfully"
