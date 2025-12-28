@@ -50,7 +50,8 @@ while true; do
            ./scripts/connect_database.sh "$db_name"
            ;;
         4)
-           echo -e "${YELLOW}Drop database needs to be implemented yet!!!${RESET}"
+           read -p "Enter database name to drop: " db_name
+           ./scripts/drop_database.sh "$db_name"
            ;;
         5)
            echo -e "${RED}Exiting...${RESET}"
