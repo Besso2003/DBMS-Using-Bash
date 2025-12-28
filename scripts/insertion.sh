@@ -13,7 +13,9 @@ db_path="$1"
 tables_path="$db_path/tables"
 LEFT_PAD=10   # controls where the table info starts
 
-# Center text (for headers)
+# =========================
+# Display helpers
+# =========================
 center_text() {
     local text="$1"
     local term_width=$(tput cols)
@@ -21,21 +23,20 @@ center_text() {
     printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
 }
 
-# Left padded text (for lists)
+# Left padded, optional stderr
 left_text() {
-    printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$1")"
+    local msg="$1"
+    local stream="${2:-stdout}"  # default stdout
+    if [ "$stream" = "stderr" ]; then
+        printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$msg")" >&2
+    else
+        printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$msg")"
+    fi
 }
 
-clear
-echo
-
-# Header
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-center_text "${WHITE}${BOLD}                                         INSERT INTO TABLE                             ${RESET}"
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-echo
-
-# Function: Validate input
+# =========================
+# Input validation
+# =========================
 get_valid_input() {
     local prompt="$1"
     local type="$2"
@@ -45,13 +46,13 @@ get_valid_input() {
         read -p "$prompt" value
 
         if [ "$type" = "int" ]; then
-            if [[ ! "$value" =~ ^-?[0-9]+$ ]]; then
-                left_text "${RED}Invalid integer. Try again.${RESET}"
+            if ! [[ "$value" =~ ^-?[0-9]+$ ]]; then
+                left_text "${RED}Invalid integer. Try again.${RESET}" stderr
                 continue
             fi
         else
             if [ -z "$value" ]; then
-                left_text "${RED}Value cannot be empty. Try again.${RESET}"
+                left_text "${RED}Value cannot be empty. Try again.${RESET}" stderr
                 continue
             fi
         fi
@@ -61,18 +62,28 @@ get_valid_input() {
     done
 }
 
-# Get Table Name
+# =========================
+# Start insert
+# =========================
+clear
+echo
+center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
+center_text "${WHITE}${BOLD}                                         INSERT INTO TABLE                             ${RESET}"
+center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
+echo
+
+# Get table name
 while true; do
     read -p "$(printf '%*s' $LEFT_PAD)Enter Table Name: " table_name
     meta_file="$tables_path/$table_name.meta"
     data_file="$tables_path/$table_name.db"
 
     if [ -z "$table_name" ]; then
-        left_text "${RED}Error:${RESET} Table name cannot be empty."
+        left_text "${RED}Error: Table name cannot be empty.${RESET}" stderr
     elif [ ! -f "$meta_file" ]; then
-        left_text "${RED}Error:${RESET} Table '$table_name' does not exist."
+        left_text "${RED}Error: Table '$table_name' does not exist.${RESET}" stderr
     elif [ ! -f "$data_file" ]; then
-        left_text "${RED}Error:${RESET} Data file for table '$table_name' does not exist."
+        left_text "${RED}Error: Data file for table '$table_name' does not exist.${RESET}" stderr
     else
         break
     fi
@@ -86,19 +97,18 @@ IFS=':' read -ra col_types <<< "$types"
 row=()
 pk_value=""
 
-# Left-padded header for entering row values
 left_text "${YELLOW}Enter values for the new row:${RESET}"
 echo
 
-# Read row values with validation
+# Insert values with validation
 for ((i=0; i<columns; i++)); do
     while true; do
         value=$(get_valid_input "$(printf '%*s' $LEFT_PAD)Enter ${col_names[i]} (${col_types[i]}): " "${col_types[i]}")
 
         # Primary Key uniqueness validation
         if [ $((i+1)) -eq "$pk" ]; then
-            if cut -d: -f"$pk" "$data_file" | grep -qx "$value"; then
-                left_text "${RED}Duplicate primary key. Enter a unique value.${RESET}"
+            if cut -d: -f"$pk" "$data_file" | grep -Fxq "$value"; then
+                left_text "${RED}Duplicate primary key. Enter a unique value.${RESET}" stderr
                 continue
             fi
             pk_value="$value"
@@ -109,7 +119,7 @@ for ((i=0; i<columns; i++)); do
     done
 done
 
-# Insert row into data file
+# Append to data file
 echo "$(IFS=:; echo "${row[*]}")" >> "$data_file"
 left_text "${GREEN}Row inserted successfully into table '$table_name'.${RESET}"
 echo
