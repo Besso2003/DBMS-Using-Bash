@@ -28,7 +28,7 @@ echo
 
 # Header
 center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-center_text "${WHITE}${BOLD}                  AVAILABLE TABLES${RESET}"
+center_text "${WHITE}${BOLD}                  AVAILABLE Databases${RESET}"
 center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
 echo
 
