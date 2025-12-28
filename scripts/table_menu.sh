@@ -80,8 +80,8 @@ while true; do
             ./scripts/delete_from_table.sh "$db_path"
             ;;
         7)
-            left_text "${YELLOW}Update Table (to be implemented)${RESET}"
-            read -p "Press Enter to continue..."
+            clear
+            ./scripts/update.sh "$db_path"
             ;;
         8)
             clear
