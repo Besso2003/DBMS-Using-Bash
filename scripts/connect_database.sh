@@ -11,13 +11,13 @@ db_path="databases/$db_name"
 
 # Check database name
 if [ -z "$db_name" ]; then
-    echo "Error: Database name is required."
+    echo -e "${RED}Error: Database name is required.${RESET}"
     exit 1
 fi
 
 # Check database exists
 if [ ! -d "$db_path" ]; then
-    echo "Error: Database '$db_name' does not exist."
+    echo -e "${RED}Error: Database '$db_name' does not exist.${RESET}"
     exit 1
 fi
 
@@ -25,7 +25,7 @@ fi
 mkdir -p "$db_path/tables"
 
 # Simulate connecting
-echo -e "${CYAN}Connecting to database '$db_name'...${RESET}"
+echo -e "${GREEN}Connecting to database '$db_name'...${RESET}"
 sleep 1
 clear
 

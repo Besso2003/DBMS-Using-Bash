@@ -133,6 +133,7 @@ print_row() {
 if [ "$choice" -eq 1 ]; then
     echo
     print_row "$names"
+    echo
     while IFS= read -r line; do
         print_row "$line"
     done < <(cat "$data_file" | safe_sort)
@@ -162,9 +163,6 @@ COL_INDEX="$col_num"
 COL_NAME="${col_names[$((col_num-1))]}"
 COL_TYPE="${col_types[$((col_num-1))]}"
 
-# =========================
-# Apply filtering
-# =========================
 # =========================
 # Apply filtering
 # =========================
