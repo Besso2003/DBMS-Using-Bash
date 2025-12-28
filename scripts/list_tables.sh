@@ -10,7 +10,7 @@ RESET="\033[0m"
 db_path="$1"
 tables_path="$db_path/tables"
 
-LEFT_PAD=20
+LEFT_PAD=10
 
 # Center text
 center_text() {
@@ -51,4 +51,4 @@ echo
 center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
 echo
 
-read -p "Press Enter to return to Table Menu..."
+read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."

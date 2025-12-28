@@ -114,7 +114,10 @@ while true; do
             if awk -F: -v pk="$pk" -v val="$pk_value" '$pk == val {found=1} END{exit !found}' "$data_file"; then
                 awk -F: -v pk="$pk" -v val="$pk_value" '$pk != val' "$data_file" > "$tmp_file"
                 mv "$tmp_file" "$data_file"
+                echo
                 left_text "${GREEN}Record deleted successfully.${RESET}"
+                echo
+                read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
                 break
             else
                 left_text "${RED}Primary Key not found.${RESET}"
@@ -143,7 +146,10 @@ while true; do
             if awk -F: -v c="$col_num" -v v="$col_value" '$c == v {found=1} END{exit !found}' "$data_file"; then
                 awk -F: -v c="$col_num" -v v="$col_value" '$c != v' "$data_file" > "$tmp_file"
                 mv "$tmp_file" "$data_file"
-                left_text "${GREEN}Matching records deleted.${RESET}"
+                echo
+                left_text "${GREEN}Record(s) where '$col_name' = '$col_value' deleted successfully.${RESET}"
+                echo
+                read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
                 break
             else
                 left_text "${RED}No matching records found.${RESET}"

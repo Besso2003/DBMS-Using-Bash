@@ -180,9 +180,11 @@ if is_numeric "$COL_TYPE"; then
         fi
     done
 
+    echo
     # Print table header
     print_row "$names"
 
+    echo
     # Print filtered rows
     while IFS= read -r line; do
         print_row "$line"
@@ -198,6 +200,7 @@ else
     echo
     print_row "$names"
 
+    echo
     # Print filtered rows
     while IFS= read -r line; do
         print_row "$line"
