@@ -43,7 +43,10 @@ while true; do
            ./scripts/drop_database.sh "$db_name"
            ;;
         5)
+           clear
            echo -e "${RED}Exiting...${RESET}"
+           sleep 1
+           clear
            exit 0
            ;;
         *)
@@ -51,6 +54,9 @@ while true; do
            ;;
     esac
 
-    echo
-    read -p "Press Enter to continue..." dummy
+    # Only pause if the choice was not 3 (connect to DB) or if Table Menu returned
+   if [[ "$choice" -ne 3 ]]; then
+      echo
+      read -p "Press Enter to continue..." dummy
+   fi
 done

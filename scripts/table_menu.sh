@@ -67,6 +67,8 @@ while true; do
             ;;
         8)
             clear
+            echo -e "${YELLOW}Returning to Main Menu...${RESET}"
+            sleep 1
             break
             ;;
         *)
