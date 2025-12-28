@@ -1,16 +1,39 @@
 #!/bin/bash
 
-RED="\e[31m"
-GREEN="\e[32m"
-YELLOW="\e[33m"
-CYAN="\e[36m"
-RESET="\e[0m"
+# Colors
+CYAN="\033[36m"
+WHITE="\033[97m"
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BOLD="\033[1m"
+RESET="\033[0m"
 
 db_path="$1"
 tables_path="$db_path/tables"
+LEFT_PAD=10   # controls where the table info starts
+
+# Center text (for headers)
+center_text() {
+    local text="$1"
+    local term_width=$(tput cols)
+    local padding=$(( (term_width - ${#text}) / 2 ))
+    printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
+}
+
+# Left padded text
+left_text() {
+    printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$1")"
+}
 
 clear
-echo -e "${CYAN}===== SELECT FROM TABLE =====${RESET}"
+echo
+
+# Header
+center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
+center_text "${WHITE}${BOLD}                                        SELECT FROM TABLE                               ${RESET}"
+center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
+echo
 
 # =========================
 # Input validation helpers
@@ -24,41 +47,46 @@ get_valid_input() {
         read -p "$prompt" value
 
         if [ "$type" = "int" ]; then
-            [[ "$value" =~ ^[0-9]+$ ]] || {
-                echo -e "${RED}Invalid integer. Try again.${RESET}"
+            if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+                left_text "${RED}Invalid integer. Try again.${RESET}"
                 continue
-            }
+            fi
         else
-            [ -z "$value" ] && {
-                echo -e "${RED}Value cannot be empty. Try again.${RESET}"
+            if [ -z "$value" ]; then
+                left_text "${RED}Value cannot be empty. Try again.${RESET}"
                 continue
-            }
+            fi
         fi
 
         echo "$value"
-        return
+        break
     done
 }
 
 is_numeric() {
-    case "$1" in
-        int|float|double) return 0 ;;
-        *) return 1 ;;
-    esac
+    [ "$1" = "int" ]
+}
+
+safe_sort() {
+    if [ -n "$pk" ]; then
+        sort -t':' -k"${pk},${pk}"n
+    else
+        cat
+    fi
 }
 
 # =========================
 # Choose table
 # =========================
 while true; do
-    read -p "Enter Table Name: " table_name
+    read -p "$(printf '%*s' $LEFT_PAD)Enter Table Name: " table_name
     meta_file="$tables_path/$table_name.meta"
     data_file="$tables_path/$table_name.db"
 
     if [ -z "$table_name" ]; then
-        echo -e "${RED}Table name cannot be empty.${RESET}"
+        left_text "${RED}Table name cannot be empty.${RESET}"
     elif [ ! -f "$meta_file" ] || [ ! -f "$data_file" ]; then
-        echo -e "${RED}Table '$table_name' does not exist.${RESET}"
+        left_text "${RED}Table '$table_name' does not exist.${RESET}"
     else
         break
     fi
@@ -68,32 +96,47 @@ done
 # Load meta
 # =========================
 source "$meta_file"
-
 IFS=':' read -ra col_names <<< "$names"
 IFS=':' read -ra col_types <<< "$types"
 
 # =========================
-# Select type
+# Select mode
 # =========================
-echo
-echo -e "${YELLOW}Select Mode:${RESET}"
-echo "1) Select All"
-echo "2) Select With Condition"
+while true; do
+    echo
+    left_text "${YELLOW}Select Mode:${RESET}"
+    left_text "1) Select All"
+    left_text "2) Select With Condition"
+    
+    choice=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Choose option [1-2]: " "int")
+    if [[ "$choice" -ge 1 && "$choice" -le 2 ]]; then
+        break
+    else
+        left_text "${RED}Invalid option. Please enter 1 or 2.${RESET}"
+    fi
+done
 
-choice=$(get_valid_input "Choose option [1-2]: " "int")
+# Function to print a row nicely
+print_row() {
+    local row="$1"
+    IFS=':' read -ra fields <<< "$row"
+    printf "%*s" "$LEFT_PAD" ""
+    for f in "${fields[@]}"; do
+        printf "%-15s" "$f"
+    done
+    echo
+}
 
 # =========================
 # SELECT ALL
 # =========================
 if [ "$choice" -eq 1 ]; then
-    awk -F':' -v cols="$columns" '
-        (cols=="" || NF==cols)
-    ' "$data_file" |
-    sort -t':' -k"${pk},${pk}"n |
-    {
-        echo "$names"
-        cat
-    }
+    echo
+    print_row "$names"
+    while IFS= read -r line; do
+        print_row "$line"
+    done < <(cat "$data_file" | safe_sort)
+    read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
     exit 0
 fi
 
@@ -101,17 +144,19 @@ fi
 # SELECT WITH CONDITION
 # =========================
 echo
-echo -e "${YELLOW}Choose column:${RESET}"
+left_text "${YELLOW}Choose column:${RESET}"
 for ((i=0; i<${#col_names[@]}; i++)); do
-    echo "$((i+1))) ${col_names[i]}"
+    left_text "$((i+1))) ${col_names[i]}"
 done
 
-col_num=$(get_valid_input "Column number: " "int")
-
-if [ "$col_num" -lt 1 ] || [ "$col_num" -gt "${#col_names[@]}" ]; then
-    echo -e "${RED}Invalid column number.${RESET}"
-    exit 1
-fi
+while true; do
+    col_num=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Column number: " "int")
+    if [[ "$col_num" -ge 1 && "$col_num" -le "${#col_names[@]}" ]]; then
+        break
+    else
+        left_text "${RED}Invalid column number. Please choose a valid column.${RESET}"
+    fi
+done
 
 COL_INDEX="$col_num"
 COL_NAME="${col_names[$((col_num-1))]}"
@@ -120,40 +165,49 @@ COL_TYPE="${col_types[$((col_num-1))]}"
 # =========================
 # Apply filtering
 # =========================
+# =========================
+# Apply filtering
+# =========================
 if is_numeric "$COL_TYPE"; then
-    echo -e "${YELLOW}Numeric filter:${RESET}"
-    START_VAL=$(get_valid_input "Start value: " "$COL_TYPE")
-    read -p "End value (press Enter for single value): " END_VAL
-    [ -z "$END_VAL" ] && END_VAL="$START_VAL"
+    left_text "${YELLOW}Numeric filter:${RESET}"
+    while true; do
+        START_VAL=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Start value: " "$COL_TYPE")
+        read -p "$(printf '%*s' $LEFT_PAD '')End value (press Enter for single value): " END_VAL
+        [ -z "$END_VAL" ] && END_VAL="$START_VAL"
 
-    # Validate numeric
-    num_re='^-?[0-9]+(\.[0-9]+)?$'
-    [[ "$START_VAL" =~ $num_re && "$END_VAL" =~ $num_re ]] || {
-        echo -e "${RED}Invalid numeric values.${RESET}"
-        exit 1
-    }
+        if [[ "$START_VAL" =~ ^-?[0-9]+$ && "$END_VAL" =~ ^-?[0-9]+$ ]]; then
+            break
+        else
+            left_text "${RED}Invalid integer values. Try again.${RESET}"
+        fi
+    done
 
-    awk -F':' -v c="$COL_INDEX" -v s="$START_VAL" -v e="$END_VAL" -v cols="$columns" '
-        (cols=="" || NF==cols) &&
-        ($c+0) >= (s+0) &&
-        ($c+0) <= (e+0)
-    ' "$data_file" |
-    sort -t':' -k"${pk},${pk}"n |
-    {
-        echo "$names"
-        cat
-    }
+    # Print table header
+    print_row "$names"
+
+    # Print filtered rows
+    while IFS= read -r line; do
+        print_row "$line"
+    done < <(
+        awk -F':' -v c="$COL_INDEX" -v s="$START_VAL" -v e="$END_VAL" '($c+0) >= (s+0) && ($c+0) <= (e+0)' "$data_file" | safe_sort
+    )
 
 else
-    echo -e "${YELLOW}String filter (exact match):${RESET}"
-    VAL=$(get_valid_input "Value: " "string")
+    left_text "${YELLOW}String filter (exact match):${RESET}"
+    VAL=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Value: " "string")
 
-    awk -F':' -v c="$COL_INDEX" -v v="$VAL" -v cols="$columns" '
-        (cols=="" || NF==cols) && $c == v
-    ' "$data_file" |
-    sort -t':' -k"${pk},${pk}"n |
-    {
-        echo "$names"
-        cat
-    }
+    # Print table header
+    echo
+    print_row "$names"
+
+    # Print filtered rows
+    while IFS= read -r line; do
+        print_row "$line"
+    done < <(
+        awk -F':' -v c="$COL_INDEX" -v v="$VAL" '$c == v' "$data_file" | safe_sort
+    )
 fi
+
+# Pause so user can see result
+echo
+read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."

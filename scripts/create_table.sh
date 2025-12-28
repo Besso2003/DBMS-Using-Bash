@@ -5,22 +5,51 @@ RED="\e[31m"
 GREEN="\e[32m"
 YELLOW="\e[33m"
 CYAN="\e[36m"
+WHITE="\e[97m"
+BOLD="\e[1m"
 RESET="\e[0m"
 
 db_path="$1"
 tables_path="$db_path/tables"
 mkdir -p "$tables_path"
 
+LEFT_PAD=10
+
+# Center text
+center_text() {
+    local text="$1"
+    local width=$(tput cols)
+    local padding=$(( (width - ${#text}) / 2 ))
+    printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
+}
+
+# Left aligned helpers
+left_text() {
+    printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$1")"
+}
+
+left_prompt() {
+    printf "%*s%s" "$LEFT_PAD" "" "$(echo -e "$1")"
+}
+
 clear
-echo -e "${CYAN}===== CREATE NEW TABLE =====${RESET}"
+echo
+
+# Header
+center_text "${CYAN}${BOLD}==================================================================================================================${RESET}"
+center_text "${WHITE}${BOLD}CREATE NEW TABLE${RESET}"
+center_text "${CYAN}${BOLD}==================================================================================================================${RESET}"
+echo
 
 # Table Name
 while true; do
-    read -p "Enter Table Name: " table_name
+    left_prompt "${WHITE}${BOLD}Enter Table Name: ${RESET}"
+    read table_name
+
     if [ -z "$table_name" ]; then
-        echo -e "${RED}Error:${RESET} Table name cannot be empty."
+        left_text "${RED}Error:${RESET} Table name cannot be empty."
     elif [ -f "$tables_path/$table_name.meta" ]; then
-        echo -e "${RED}Error:${RESET} Table '$table_name' already exists."
+        left_text "${RED}Error:${RESET} Table '$table_name' already exists."
     else
         meta_file="$tables_path/$table_name.meta"
         data_file="$tables_path/$table_name.db"
@@ -30,9 +59,11 @@ done
 
 # Number of Columns
 while true; do
-    read -p "Enter number of columns: " cols
+    left_prompt "${WHITE}${BOLD}Enter number of columns: ${RESET}"
+    read cols
+
     if [[ ! "$cols" =~ ^[0-9]+$ || "$cols" -le 0 ]]; then
-        echo -e "${RED}Error:${RESET} Invalid column count."
+        left_text "${RED}Error:${RESET} Invalid column count."
     else
         break
     fi
@@ -41,26 +72,28 @@ done
 col_names=()
 col_types=()
 
-# Column Names and Types
+# Column Names & Types
 for ((i=1; i<=cols; i++)); do
-    # Column Name
     while true; do
-        read -p "Column $i name: " col_name
+        left_prompt "${WHITE}Column $i name: ${RESET}"
+        read col_name
+
         if [ -z "$col_name" ]; then
-            echo -e "${RED}Error:${RESET} Column name cannot be empty."
+            left_text "${RED}Error:${RESET} Column name cannot be empty."
         elif [[ " ${col_names[*]} " == *" $col_name "* ]]; then
-            echo -e "${RED}Error:${RESET} Duplicate column name."
+            left_text "${RED}Error:${RESET} Duplicate column name."
         else
             col_names+=("$col_name")
             break
         fi
     done
 
-    # Column Type
     while true; do
-        read -p "Column $i datatype (int|string): " col_type
+        left_prompt "${WHITE}Column $i datatype (int|string): ${RESET}"
+        read col_type
+
         if [[ "$col_type" != "int" && "$col_type" != "string" ]]; then
-            echo -e "${RED}Error:${RESET} Invalid datatype. Use 'int' or 'string'."
+            left_text "${RED}Error:${RESET} Invalid datatype. Use 'int' or 'string'."
         else
             col_types+=("$col_type")
             break
@@ -68,22 +101,25 @@ for ((i=1; i<=cols; i++)); do
     done
 done
 
-# Choose Primary Key
-echo -e "\n${YELLOW}Columns:${RESET}"
+# Primary Key
+echo
+left_text "${YELLOW}Columns:${RESET}"
 for ((i=0; i<cols; i++)); do
-    echo "$((i+1))) ${col_names[i]}"
+    left_text "$((i+1))) ${col_names[i]}"
 done
 
 while true; do
-    read -p "Choose Primary Key column number: " pk
+    left_prompt "${WHITE}${BOLD}Choose Primary Key column number: ${RESET}"
+    read pk
+
     if [[ ! "$pk" =~ ^[0-9]+$ || "$pk" -lt 1 || "$pk" -gt "$cols" ]]; then
-        echo -e "${RED}Error:${RESET} Invalid Primary Key column number."
+        left_text "${RED}Error:${RESET} Invalid Primary Key column number."
     else
         break
     fi
 done
 
-# Write metadata and create data file
+# Write metadata
 {
     echo "pk=$pk"
     echo "columns=$cols"
@@ -93,8 +129,11 @@ done
 
 touch "$data_file"
 
-echo -e "\n${GREEN}Table '$table_name' created successfully!${RESET}"
-echo -e "Primary Key: ${col_names[$((pk-1))]} (column $pk)"
+echo
+left_text "${GREEN}Table '$table_name' created successfully!${RESET}"
+left_text "Primary Key: ${col_names[$((pk-1))]} (column $pk)"
 
-read -p $'\nPress Enter to return to Table Menu...'
+echo
+left_prompt "Press Enter to return to Table Menu..."
+read
 clear
