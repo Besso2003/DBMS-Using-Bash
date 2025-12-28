@@ -71,7 +71,7 @@ chmod +x dbms.sh
 Note: All databases will be stored in the databases/ folder created automatically by the script.
 
 ## Usage / Navigation
-Main Menu Options
+# Main Menu Options
 1) Create Database – Create a new database (folder).
 
 2) List Database – Show all available databases.
@@ -94,7 +94,7 @@ Database Menu (after connecting to a database)
 
 5) Select From Table – Display records (all or filtered by conditions).
 
-6) Delete From Table – Remove records (by primary key or condition).
+6) Delete From Table – Remove records (by primary key or condition or delete all).
 
 7) Update Table – Modify existing records with datatype validation.
 
