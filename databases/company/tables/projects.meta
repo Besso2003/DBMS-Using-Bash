@@ -1,4 +1,0 @@
-pk=1
-columns=4
-types=int:string:string:int
-names=project_id:project_name:manager:budget_k

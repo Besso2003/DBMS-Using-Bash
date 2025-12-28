@@ -92,6 +92,7 @@ done
 
 echo
 left_text "${YELLOW}DANGEROUS ACTION:${RESET} This will permanently delete table '$table_name' and its data."
+echo
 left_text "Type the table name exactly to confirm deletion, or type CANCEL to abort."
 echo
 
@@ -101,7 +102,9 @@ while true; do
     confirm=$(echo "$confirm" | xargs)
 
     if [ "$confirm" = "CANCEL" ]; then
+        echo
         left_text "${GREEN}Deletion aborted.${RESET}"
+        echo
         left_prompt "Press Enter to return to Table Menu..."
         read -r
         exit 0
