@@ -98,7 +98,7 @@ Note: All databases will be stored in the databases/ folder created automaticall
 
 7) Update Table – Modify existing records with datatype validation.
 
-Input Validations
+### Input Validations
 - Integer columns accept only numbers.
 
 - String columns accept only non-empty strings.
