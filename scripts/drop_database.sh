@@ -4,7 +4,6 @@
 RED="\e[31m"
 GREEN="\e[32m"
 YELLOW="\e[33m"
-CYAN="\e[36m"
 RESET="\e[0m"
 
 db_name="$1"
@@ -12,13 +11,13 @@ db_path="databases/$db_name"
 
 # Check database name
 if [ -z "$db_name" ]; then
-    echo "Error: Database name is required."
+    echo -e "${RED}Error: Database name is required.${RESET}"
     exit 1
 fi
 
 # Check database exists
 if [ ! -d "$db_path" ]; then
-    echo "Error: Database '$db_name' does not exist."
+    echo -e "${RED}Error: Database '$db_name' does not exist.${RESET}"
     exit 1
 fi
 
@@ -37,7 +36,6 @@ while true; do
     fi
 
     if [ "$confirm" = "$db_name" ]; then
-        # perform deletion
         if rm -rf -- "$db_path"; then
             echo -e "${GREEN}Database '$db_name' deleted successfully.${RESET}"
             exit 0
