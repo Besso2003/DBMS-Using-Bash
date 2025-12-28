@@ -2,19 +2,8 @@
 
 mkdir -p databases
 
-# Colors
-RED="\e[31m"
-CYAN="\e[36m"
-YELLOW="\e[33m"
-RESET="\e[0m"
-
-# Function to center text
-center_text() {
-    local term_width=$(tput cols)
-    local text="$1"
-    local padding=$(( (term_width - ${#text}) / 2 ))
-    printf "%*s%s\n" $padding "" "$text"
-}
+# Source shared UI helpers
+source "scripts/ui.sh"
 
 while true; do
     clear

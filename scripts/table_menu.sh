@@ -2,28 +2,10 @@
 
 db_path="$1"   # selected database path
 
-# Colors
-CYAN="\033[36m"
-WHITE="\033[97m"
-YELLOW="\033[33m"
-RED="\033[31m"
-BOLD="\033[1m"
-RESET="\033[0m"
-
+# prefer script-local padding, ui.sh will provide helpers
 LEFT_PAD=10
+source "$(dirname "$0")/ui.sh"
 
-# Center text
-center_text() {
-    local text="$1"
-    local width=$(tput cols)
-    local padding=$(( (width - ${#text}) / 2 ))
-    printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
-}
-
-# Left padded menu items
-left_text() {
-    printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$1")"
-}
 
 while true; do
     clear

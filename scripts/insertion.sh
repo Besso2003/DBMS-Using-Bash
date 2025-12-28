@@ -1,32 +1,16 @@
 #!/bin/bash
 
-# Colors
-CYAN="\033[36m"
-WHITE="\033[97m"
-RED="\033[31m"
-GREEN="\033[32m"
-YELLOW="\033[33m"
-BOLD="\033[1m"
-RESET="\033[0m"
-
 db_path="$1"
 tables_path="$db_path/tables"
-LEFT_PAD=10   # controls where the table info starts
 
-# =========================
-# Display helpers
-# =========================
-center_text() {
-    local text="$1"
-    local term_width=$(tput cols)
-    local padding=$(( (term_width - ${#text}) / 2 ))
-    printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
-}
+# prefer script-local padding, ui.sh will provide helpers
+LEFT_PAD=10
+source "$(dirname \"$0\")/ui.sh"
 
-# Left padded, optional stderr
+# override left_text to optionally write to stderr (insertion uses this behavior)
 left_text() {
     local msg="$1"
-    local stream="${2:-stdout}"  # default stdout
+    local stream="${2:-stdout}"
     if [ "$stream" = "stderr" ]; then
         printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$msg")" >&2
     else

@@ -1,27 +1,10 @@
 #!/bin/bash
 
-# Colors
-CYAN="\033[36m"
-WHITE="\033[97m"
-RED="\033[31m"
-BOLD="\033[1m"
-RESET="\033[0m"
-
 db_dir="databases"
-LEFT_PAD=20   # <<< controls where DB list starts
 
-# Center text (for headers)
-center_text() {
-    local text="$1"
-    local term_width=$(tput cols)
-    local padding=$(( (term_width - ${#text}) / 2 ))
-    printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
-}
-
-# Left padded text (for lists)
-left_text() {
-    printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$1")"
-}
+# prefer script-local padding, ui.sh will provide helpers
+LEFT_PAD=20
+source "$(dirname "$0")/ui.sh"
 
 clear
 echo

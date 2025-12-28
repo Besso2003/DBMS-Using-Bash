@@ -1,36 +1,12 @@
 #!/bin/bash
 
-# Colors
-RED="\e[31m"
-GREEN="\e[32m"
-YELLOW="\e[33m"
-CYAN="\e[36m"
-WHITE="\e[97m"
-BOLD="\e[1m"
-RESET="\e[0m"
-
 db_path="$1"
 tables_path="$db_path/tables"
 mkdir -p "$tables_path"
 
+# prefer script-local padding, ui.sh will provide helpers
 LEFT_PAD=10
-
-# Center text
-center_text() {
-    local text="$1"
-    local width=$(tput cols)
-    local padding=$(( (width - ${#text}) / 2 ))
-    printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
-}
-
-# Left aligned helpers
-left_text() {
-    printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$1")"
-}
-
-left_prompt() {
-    printf "%*s%s" "$LEFT_PAD" "" "$(echo -e "$1")"
-}
+source "$(dirname "$0")/ui.sh"
 
 clear
 echo

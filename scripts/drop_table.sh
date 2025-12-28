@@ -1,35 +1,10 @@
 #!/bin/bash
 
-# Colors
-RED="\e[31m"
-GREEN="\e[32m"
-YELLOW="\e[33m"
-CYAN="\e[36m"
-WHITE="\e[97m"
-BOLD="\e[1m"
-RESET="\e[0m"
-
 db_path="$1"
 tables_path="$db_path/tables"
 
 LEFT_PAD=20
-
-# Center text
-center_text() {
-    local text="$1"
-    local term_width=$(tput cols)
-    local padding=$(( (term_width - ${#text}) / 2 ))
-    printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
-}
-
-# Left padded text
-left_text() {
-    printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$1")"
-}
-
-left_prompt() {
-    printf "%*s%s" "$LEFT_PAD" "" "$(echo -e "$1")"
-}
+source "$(dirname "$0")/ui.sh"
 
 echo
 
