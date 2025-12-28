@@ -1,19 +1,42 @@
 #!/bin/bash
 
-RED="\e[31m"
-GREEN="\e[32m"
-YELLOW="\e[33m"
-CYAN="\e[36m"
-RESET="\e[0m"
+# Colors
+CYAN="\033[36m"
+WHITE="\033[97m"
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BOLD="\033[1m"
+RESET="\033[0m"
 
 db_path="$1"
 tables_path="$db_path/tables"
+LEFT_PAD=10   # controls where the table info starts
+
+# Center text (for headers)
+center_text() {
+    local text="$1"
+    local term_width=$(tput cols)
+    local padding=$(( (term_width - ${#text}) / 2 ))
+    printf "%*s%s\n" "$padding" "" "$(echo -e "$text")"
+}
+
+# Left padded text
+left_text() {
+    printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$1")"
+}
 
 clear
-echo -e "${CYAN}===== UPDATE TABLE =====${RESET}"
+echo
+
+# Header
+center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
+center_text "${WHITE}${BOLD}                                         UPDATE TABLE                                     ${RESET}"
+center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
+echo
 
 # =========================
-# Helpers
+# Input validation helpers
 # =========================
 get_valid_input() {
     local prompt="$1"
@@ -24,45 +47,47 @@ get_valid_input() {
         read -p "$prompt" value
 
         if [ "$type" = "int" ]; then
-            [[ "$value" =~ ^[0-9]+$ ]] || {
-                echo -e "${RED}Invalid integer.${RESET}"
+            if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+                left_text "${RED}Invalid integer. Try again.${RESET}"
                 continue
-            }
+            fi
         else
-            [ -z "$value" ] && {
-                echo -e "${RED}Value cannot be empty.${RESET}"
+            if [ -z "$value" ]; then
+                left_text "${RED}Value cannot be empty. Try again.${RESET}"
                 continue
-            }
+            fi
         fi
 
         echo "$value"
-        return
+        break
     done
 }
 
 is_numeric() {
-    case "$1" in
-        int|float|double) return 0 ;;
-        *) return 1 ;;
-    esac
+    [ "$1" = "int" ]
 }
 
-is_number_value() {
-    [[ "$1" =~ ^-?[0-9]+(\.[0-9]+)?$ ]]
+safe_sort() {
+    if [ -n "$pk" ]; then
+        sort -t':' -k"${pk},${pk}"n
+    else
+        cat
+    fi
 }
 
 # =========================
 # Choose table
 # =========================
 while true; do
+    printf '%*s' "$LEFT_PAD"
     read -p "Enter Table Name: " table_name
     meta_file="$tables_path/$table_name.meta"
     data_file="$tables_path/$table_name.db"
 
     if [ -z "$table_name" ]; then
-        echo -e "${RED}Table name cannot be empty.${RESET}"
+        left_text "${RED}Table name cannot be empty.${RESET}"
     elif [ ! -f "$meta_file" ] || [ ! -f "$data_file" ]; then
-        echo -e "${RED}Table '$table_name' does not exist.${RESET}"
+        left_text "${RED}Table '$table_name' does not exist.${RESET}"
     else
         break
     fi
@@ -80,73 +105,137 @@ IFS=':' read -ra col_types <<< "$types"
 # Choose column to update
 # =========================
 echo
-echo -e "${YELLOW}Choose column to update:${RESET}"
+left_text "${YELLOW}Choose column to update:${RESET}"
 for ((i=0; i<${#col_names[@]}; i++)); do
-    echo "$((i+1))) ${col_names[i]}"
+    left_text "$((i+1))) ${col_names[i]}"
 done
 
-update_col=$(get_valid_input "Column number: " "int")
-
-if [ "$update_col" -lt 1 ] || [ "$update_col" -gt "${#col_names[@]}" ]; then
-    echo -e "${RED}Invalid column number.${RESET}"
-    exit 1
-fi
+while true; do
+    update_col=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Column number: " "int")
+    if [[ "$update_col" -ge 1 && "$update_col" -le "${#col_names[@]}" ]]; then
+        break
+    else
+        left_text "${RED}Invalid column number. Please choose a valid column.${RESET}"
+    fi
+done
 
 UPDATE_TYPE="${col_types[$((update_col-1))]}"
 
 # =========================
 # New value
 # =========================
-read -p "New value: " NEW_VALUE
-
-if is_numeric "$UPDATE_TYPE"; then
-    is_number_value "$NEW_VALUE" || {
-        echo -e "${RED}Invalid numeric value.${RESET}"
-        exit 1
-    }
-else
-    [ -z "$NEW_VALUE" ] && {
-        echo -e "${RED}Value cannot be empty.${RESET}"
-        exit 1
-    }
-fi
-
-# =========================
-# Condition column
-# =========================
 echo
-echo -e "${YELLOW}Choose condition column:${RESET}"
-for ((i=0; i<${#col_names[@]}; i++)); do
-    echo "$((i+1))) ${col_names[i]}"
+left_text "${YELLOW}Enter new value:${RESET}"
+
+while true; do
+    read -p "$(printf '%*s' $LEFT_PAD '')New value: " NEW_VALUE
+
+    if is_numeric "$UPDATE_TYPE"; then
+        if [[ "$NEW_VALUE" =~ ^-?[0-9]+$ ]]; then
+            # If updating primary key, check uniqueness
+            # uniqueness check deferred until condition (to allow updating to same value)
+            break
+        else
+            left_text "${RED}Invalid integer. Try again.${RESET}"
+        fi
+    else
+        if [ -n "$NEW_VALUE" ]; then
+            # If updating primary key, check uniqueness
+            # uniqueness check deferred until condition (to allow updating to same value)
+            break
+        else
+            left_text "${RED}Value cannot be empty. Try again.${RESET}"
+        fi
+    fi
 done
 
-cond_col=$(get_valid_input "Column number: " "int")
-
-if [ "$cond_col" -lt 1 ] || [ "$cond_col" -gt "${#col_names[@]}" ]; then
-    echo -e "${RED}Invalid column number.${RESET}"
-    exit 1
-fi
-
-COND_TYPE="${col_types[$((cond_col-1))]}"
-
 # =========================
-# Condition values
+# Condition (either skip selection for PK-update or ask user for condition column)
 # =========================
-if is_numeric "$COND_TYPE"; then
-    START_VAL=$(get_valid_input "Condition start value: " "$COND_TYPE")
-    read -p "Condition end value (press Enter for single value): " END_VAL
-    [ -z "$END_VAL" ] && END_VAL="$START_VAL"
-
-    # Validate numeric
-    is_number_value "$START_VAL" || { echo -e "${RED}Invalid start value.${RESET}"; exit 1; }
-    is_number_value "$END_VAL" || { echo -e "${RED}Invalid end value.${RESET}"; exit 1; }
-
-    # Ensure start <= end
-    cmp_ok=$(awk -v s="$START_VAL" -v e="$END_VAL" 'BEGIN{if((s+0) <= (e+0)) print 1; else print 0}')
-    [ "$cmp_ok" -ne 1 ] && { echo -e "${RED}Start greater than end.${RESET}"; exit 1; }
+echo
+if [ "$update_col" -eq "$pk" ]; then
+    # When updating PK, condition must be on PK; ask directly for old PK value
+    cond_col="$pk"
+    COND_TYPE="${col_types[$((cond_col-1))]}"
+    left_text "${YELLOW}You are updating the primary key. Provide the old primary key value to identify the record:${RESET}"
+    if is_numeric "$COND_TYPE"; then
+        START_VAL=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Old ${col_names[$((pk-1))]} value: " "$COND_TYPE")
+        END_VAL="$START_VAL"
+    else
+        while true; do
+            read -p "$(printf '%*s' $LEFT_PAD '')Old ${col_names[$((pk-1))]} value: " COND_VALUE
+            if [ -n "$COND_VALUE" ]; then
+                break
+            else
+                left_text "${RED}Value cannot be empty. Try again.${RESET}"
+            fi
+        done
+    fi
 else
-    read -p "Condition value (exact match): " COND_VALUE
-    [ -z "$COND_VALUE" ] && { echo -e "${RED}Condition cannot be empty.${RESET}"; exit 1; }
+    left_text "${YELLOW}Choose condition column:${RESET}"
+    for ((i=0; i<${#col_names[@]}; i++)); do
+        left_text "$((i+1))) ${col_names[i]}"
+    done
+
+    while true; do
+        cond_col=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Column number: " "int")
+        if [[ "$cond_col" -ge 1 && "$cond_col" -le "${#col_names[@]}" ]]; then
+            break
+        else
+            left_text "${RED}Invalid column number. Please choose a valid column.${RESET}"
+        fi
+    done
+
+    COND_TYPE="${col_types[$((cond_col-1))]}"
+
+    # =========================
+    # Condition values
+    # =========================
+    echo
+    if is_numeric "$COND_TYPE"; then
+        # For primary key, enforce single value (no range)
+        if [ "$cond_col" -eq "$pk" ]; then
+            left_text "${YELLOW}ID filter (single value only):${RESET}"
+        else
+            left_text "${YELLOW}Numeric filter:${RESET}"
+        fi
+        
+        while true; do
+            START_VAL=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Start value: " "$COND_TYPE")
+            
+            if [ "$cond_col" -eq "$pk" ]; then
+                # Primary key: no range, just single value
+                END_VAL="$START_VAL"
+                break
+            else
+                # Non-primary key: allow range
+                read -p "$(printf '%*s' $LEFT_PAD '')End value (press Enter for single value): " END_VAL
+                [ -z "$END_VAL" ] && END_VAL="$START_VAL"
+
+                if [[ "$START_VAL" =~ ^-?[0-9]+$ && "$END_VAL" =~ ^-?[0-9]+$ ]]; then
+                    # Ensure start <= end
+                    cmp_ok=$(awk -v s="$START_VAL" -v e="$END_VAL" 'BEGIN{if((s+0) <= (e+0)) print 1; else print 0}')
+                    if [ "$cmp_ok" -eq 1 ]; then
+                        break
+                    else
+                        left_text "${RED}Start value cannot be greater than end value. Try again.${RESET}"
+                    fi
+                else
+                    left_text "${RED}Invalid integer values. Try again.${RESET}"
+                fi
+            fi
+        done
+    else
+        left_text "${YELLOW}String filter (exact match):${RESET}"
+        while true; do
+            read -p "$(printf '%*s' $LEFT_PAD '')Condition value: " COND_VALUE
+            if [ -n "$COND_VALUE" ]; then
+                break
+            else
+                left_text "${RED}Condition value cannot be empty. Try again.${RESET}"
+            fi
+        done
+    fi
 fi
 
 # =========================
@@ -154,38 +243,73 @@ fi
 # =========================
 tmp_file=$(mktemp) || exit 1
 
-awk -F':' -v OFS=':' \
-    -v uc="$update_col" \
-    -v cv="$cond_col" \
-    -v nv="$NEW_VALUE" \
-    -v s="$START_VAL" \
-    -v e="$END_VAL" \
-    -v cond="$COND_VALUE" \
-    -v cols="$columns" '
-    (cols=="" || NF==cols) {
-        if ('"$(is_numeric "$COND_TYPE" && echo 1 || echo 0)"' == 1) {
-            # Numeric range update
+# If updating primary key, ensure new value doesn't collide with another record
+if [ "$update_col" -eq "$pk" ]; then
+    # determine old pk value from condition
+    if [ "$cond_col" -eq "$pk" ]; then
+        if is_numeric "$COND_TYPE"; then
+            old_pk="$START_VAL"
+        else
+            old_pk="$COND_VALUE"
+        fi
+    else
+        old_pk=""
+    fi
+
+    if [ -n "$old_pk" ]; then
+        if awk -F':' -v c="$pk" -v newv="$NEW_VALUE" -v oldv="$old_pk" '($c==newv && $c!=oldv){found=1; exit} END{if(found) exit 0; exit 1}' "$data_file"; then
+            left_text "${RED}Error: Another record already uses the primary key value '$NEW_VALUE'. Update aborted.${RESET}"
+            echo
+            read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
+            exit 1
+        fi
+    fi
+fi
+
+if is_numeric "$COND_TYPE"; then
+    awk -F':' -v OFS=':' \
+        -v uc="$update_col" \
+        -v cv="$cond_col" \
+        -v nv="$NEW_VALUE" \
+        -v s="$START_VAL" \
+        -v e="$END_VAL" '
+        {
             if (($cv+0) >= (s+0) && ($cv+0) <= (e+0)) {
                 $uc = nv
             }
-        } else {
-            # String exact match
+            print
+        }
+    ' "$data_file" > "$tmp_file" || {
+        rm -f "$tmp_file"
+        echo -e "${RED}Update failed.${RESET}"
+        exit 1
+    }
+else
+    awk -F':' -v OFS=':' \
+        -v uc="$update_col" \
+        -v cv="$cond_col" \
+        -v nv="$NEW_VALUE" \
+        -v cond="$COND_VALUE" '
+        {
             if ($cv == cond) {
                 $uc = nv
             }
+            print
         }
-        print
+    ' "$data_file" > "$tmp_file" || {
+        rm -f "$tmp_file"
+        echo -e "${RED}Update failed.${RESET}"
+        exit 1
     }
-' "$data_file" > "$tmp_file" || {
-    rm -f "$tmp_file"
-    echo -e "${RED}Update failed.${RESET}"
-    exit 1
-}
+fi
 
 # =========================
 # Commit
 # =========================
 mv "$tmp_file" "$data_file"
 
-echo -e "${GREEN}Update completed successfully.${RESET}"
+echo
+left_text "${GREEN}Update completed successfully.${RESET}"
+echo
+read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
 exit 0
