@@ -64,8 +64,8 @@ while true; do
             ./scripts/list_tables.sh "$db_path"
             ;;
         3)
-            left_text "${YELLOW}Drop Table (to be implemented)${RESET}"
-            read -p "Press Enter to continue..."
+            clear
+            ./scripts/drop_table.sh "$db_path"
             ;;
         4)
             clear
