@@ -60,8 +60,8 @@ while true; do
             ./scripts/create_table.sh "$db_path"
             ;;
         2)
-            left_text "${YELLOW}List Tables (to be implemented)${RESET}"
-            read -p "Press Enter to continue..."
+            clear
+            ./scripts/list_tables.sh "$db_path"
             ;;
         3)
             left_text "${YELLOW}Drop Table (to be implemented)${RESET}"
