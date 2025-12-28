@@ -1,0 +1,4 @@
+pk=1
+columns=3
+types=int:int:int
+names=salary_id:emp_id:amount
