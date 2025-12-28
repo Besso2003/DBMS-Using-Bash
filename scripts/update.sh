@@ -28,7 +28,7 @@ get_valid_input() {
         read -p "$prompt" value
 
         if [ "$type" = "int" ]; then
-            if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+                if ! [[ "$value" =~ ^-?[0-9]+$ ]]; then
                 left_text "${RED}Invalid integer. Try again.${RESET}" >&2
                 continue
             fi
@@ -113,9 +113,13 @@ while true; do
 
     if is_numeric "$UPDATE_TYPE"; then
         if [[ "$NEW_VALUE" =~ ^-?[0-9]+$ ]]; then
-            # If updating primary key, check uniqueness
-            # uniqueness check deferred until condition (to allow updating to same value)
-            break
+            # If updating primary key, disallow negative integers
+            if [ "$update_col" -eq "$pk" ] && ! [[ "$NEW_VALUE" =~ ^[0-9]+$ ]]; then
+                left_text "${RED}Primary key must be a non-negative integer. Try again.${RESET}"
+            else
+                # uniqueness check deferred until condition (to allow updating to same value)
+                break
+            fi
         else
             left_text "${RED}Invalid integer. Try again.${RESET}"
         fi
@@ -186,6 +190,11 @@ else
             
             if [ "$cond_col" -eq "$pk" ]; then
                 # Primary key: no range, just single value
+                # ensure non-negative when PK is integer
+                if ! [[ "$START_VAL" =~ ^[0-9]+$ ]]; then
+                    left_text "${RED}Primary key value must be a non-negative integer. Try again.${RESET}"
+                    continue
+                fi
                 END_VAL="$START_VAL"
                 break
             else

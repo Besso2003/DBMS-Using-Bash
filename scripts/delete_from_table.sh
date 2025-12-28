@@ -26,8 +26,8 @@ get_valid_input() {
         read -p "$prompt" value
 
         if [ "$type" = "int" ]; then
-            if ! [[ "$value" =~ ^[0-9]+$ ]]; then
-                left_text "${RED}Invalid input. Enter a number.${RESET}" >&2
+                if ! [[ "$value" =~ ^-?[0-9]+$ ]]; then
+                    left_text "${RED}Invalid input. Enter a number.${RESET}" >&2
                 continue
             fi
         else
@@ -88,9 +88,18 @@ while true; do
         1)
             # ===== Delete by Primary Key =====
             pk_col_name="${col_names[$((pk-1))]}"
-            pk_value=$(get_valid_input \
-                "$(printf '%*s' $LEFT_PAD '')Enter value for Primary Key '$pk_col_name': " \
-                "${col_types[$((pk-1))]}")
+            # Prompt for PK value and ensure non-negative if PK is int
+            while true; do
+                pk_value=$(get_valid_input \
+                    "$(printf '%*s' $LEFT_PAD '')Enter value for Primary Key '$pk_col_name': " \
+                    "${col_types[$((pk-1))]}")
+
+                if [[ "${col_types[$((pk-1))]}" = "int" && ! "$pk_value" =~ ^[0-9]+$ ]]; then
+                    left_text "${RED}Primary key must be a non-negative integer.${RESET}"
+                    continue
+                fi
+                break
+            done
 
             if awk -F: -v pk="$pk" -v val="$pk_value" '$pk == val {found=1} END{exit !found}' "$data_file"; then
                 awk -F: -v pk="$pk" -v val="$pk_value" '$pk != val' "$data_file" > "$tmp_file"

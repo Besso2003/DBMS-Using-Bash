@@ -91,6 +91,12 @@ for ((i=0; i<columns; i++)); do
 
         # Primary Key uniqueness validation
         if [ $((i+1)) -eq "$pk" ]; then
+            # Primary key must be non-negative integer when type is int
+            if [[ "${col_types[i]}" = "int" && ! "$value" =~ ^[0-9]+$ ]]; then
+                left_text "${RED}Primary key must be a non-negative integer.${RESET}" stderr
+                continue
+            fi
+
             if cut -d: -f"$pk" "$data_file" | grep -Fxq "$value"; then
                 left_text "${RED}Duplicate primary key. Enter a unique value.${RESET}" stderr
                 continue

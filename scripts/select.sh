@@ -28,7 +28,7 @@ get_valid_input() {
         read -p "$prompt" value
 
         if [ "$type" = "int" ]; then
-            if ! [[ "$value" =~ ^[0-9]+$ ]]; then
+                if ! [[ "$value" =~ ^-?[0-9]+$ ]]; then
                 left_text "${RED}Invalid integer. Try again.${RESET}" >&2
                 continue
             fi
@@ -155,6 +155,11 @@ if is_numeric "$COL_TYPE"; then
         [ -z "$END_VAL" ] && END_VAL="$START_VAL"
 
         if [[ "$START_VAL" =~ ^-?[0-9]+$ && "$END_VAL" =~ ^-?[0-9]+$ ]]; then
+            # If filtering by primary key, enforce non-negative integers
+            if [ "$COL_INDEX" -eq "$pk" ] && ( ! [[ "$START_VAL" =~ ^[0-9]+$ ]] || ! [[ "$END_VAL" =~ ^[0-9]+$ ]] ); then
+                left_text "${RED}Primary key filter requires non-negative integers. Try again.${RESET}"
+                continue
+            fi
             break
         else
             left_text "${RED}Invalid integer values. Try again.${RESET}"
