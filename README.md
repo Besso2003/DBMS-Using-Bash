@@ -71,7 +71,7 @@ chmod +x dbms.sh
 Note: All databases will be stored in the databases/ folder created automatically by the script.
 
 ## Usage / Navigation
-# Main Menu Options
+### Main Menu Options
 1) Create Database – Create a new database (folder).
 
 2) List Database – Show all available databases.
@@ -83,7 +83,7 @@ Note: All databases will be stored in the databases/ folder created automaticall
 5) Exit – Exit the application.
 
 
-Database Menu (after connecting to a database)
+### Database Menu (after connecting to a database)
 1) Create Table – Define a new table with column names, datatypes, and primary key.
 
 2) List Tables – List all tables in the connected database.
