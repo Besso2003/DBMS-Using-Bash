@@ -5,7 +5,7 @@ tables_path="$db_path/tables"
 
 
 
-LEFT_PAD=20
+LEFT_PAD=10
 source "$(dirname "$0")/ui.sh"
 
 echo

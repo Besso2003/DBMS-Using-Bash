@@ -3,7 +3,7 @@
 db_dir="databases"
 
 # prefer script-local padding, ui.sh will provide helpers
-LEFT_PAD=20
+LEFT_PAD=10
 source "$(dirname "$0")/ui.sh"
 
 clear
