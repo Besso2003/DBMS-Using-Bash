@@ -1,0 +1,4 @@
+pk=1
+columns=3
+types=int:string:string
+names=id:name:email

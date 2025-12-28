@@ -5,7 +5,7 @@ tables_path="$db_path/tables"
 
 # prefer script-local padding, ui.sh will provide helpers
 LEFT_PAD=10
-source "$(dirname \"$0\")/ui.sh"
+source "$(dirname "$0")/ui.sh"
 
 clear
 echo
