@@ -48,12 +48,12 @@ get_valid_input() {
 
         if [ "$type" = "int" ]; then
             if ! [[ "$value" =~ ^[0-9]+$ ]]; then
-                left_text "${RED}Invalid integer. Try again.${RESET}"
+                left_text "${RED}Invalid integer. Try again.${RESET}" >&2
                 continue
             fi
         else
             if [ -z "$value" ]; then
-                left_text "${RED}Value cannot be empty. Try again.${RESET}"
+                left_text "${RED}Value cannot be empty. Try again.${RESET}" >&2
                 continue
             fi
         fi
