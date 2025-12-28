@@ -51,7 +51,7 @@ Bash_Project/
 1. Clone the repository:
 
 ```bash
-git clone <your-repo-url>
+git clone <https://github.com/Besso2003/DBMS-Using-Bash>
 cd Bash_Project
 ```
 
