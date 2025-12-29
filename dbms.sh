@@ -2,54 +2,49 @@
 
 mkdir -p databases
 
-# Use dialog UI if available
-if command -v dialog >/dev/null 2>&1; then
-    source "scripts/dialog_ui.sh"
-else
-    source "scripts/ui.sh"
-fi
+# Source GUI helpers
+source "scripts/dialog_ui.sh"
 
 while true; do
-    # Capture choice from dialog menu
-    choice=$(dialog --clear --title "MAIN MENU" --menu "Choose an option:" 15 50 5 \
-        1 "Create Database" \
-        2 "List Database" \
-        3 "Connect To Database" \
-        4 "Drop Database" \
-        5 "Exit" \
-        2>&1 >/dev/tty)
+    choice=$(gui_menu "MAIN MENU" \
+        "1" "Create Database" \
+        "2" "List Database" \
+        "3" "Connect To Database" \
+        "4" "Drop Database" \
+        "5" "Exit"
+    )
 
-    # Handle Cancel / Esc
+    # If user pressed Cancel or closed window
     if [ $? -ne 0 ]; then
-        dialog --title "Exit" --msgbox "Exiting..." 10 50
-        clear
+        gui_info "Exit" "Exiting..."
         sleep 1
         exit 0
     fi
 
     case "$choice" in
-        1) 
-            ./scripts/create_database.sh ;;
-        2) 
-            ./scripts/list_database.sh ;;
+        1)
+            ./scripts/create_database.sh
+            ;;
+        2)
+            ./scripts/list_database.sh
+            ;;
         3)
-            db_name=$(dialog --title "Connect to Database" --inputbox "Enter database name:" 10 50 2>&1 >/dev/tty)
+            db_name=$(gui_input "Connect to Database" "Enter database name:")
             [ $? -ne 0 ] && continue
             ./scripts/connect_database.sh "$db_name"
             ;;
         4)
-            db_name=$(dialog --title "Drop Database" --inputbox "Enter database name:" 10 50 2>&1 >/dev/tty)
+            db_name=$(gui_input "Drop Database" "Enter database name to drop:")
             [ $? -ne 0 ] && continue
             ./scripts/drop_database.sh "$db_name"
             ;;
         5)
-            dialog --title "Exit" --msgbox "Exiting..." 10 50
-            clear
+            gui_info "Exit" "Exiting..."
             sleep 1
             exit 0
             ;;
         *)
-            dialog --title "Error" --msgbox "Invalid choice" 10 50
+            gui_error "Error" "Invalid choice"
             ;;
     esac
 done
