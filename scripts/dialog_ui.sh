@@ -1,51 +1,35 @@
 #!/bin/bash
 
-gui_input() {
-    if $GUI_AVAILABLE; then
-        zenity --entry --title="$1" --text="$2"
-    else
-        read -p "$2 " value
-        echo "$value"
-    fi
-}
-
-gui_info() {
-    if $GUI_AVAILABLE; then
-        zenity --info --title="$1" --text="$2"
-    else
-        echo "$2"
-        sleep 1
-    fi
-}
-
-gui_error() {
-    if $GUI_AVAILABLE; then
-        zenity --error --title="$1" --text="$2"
-    else
-        echo "ERROR: $2" >&2
-    fi
-}
-
-gui_confirm() {
-    if $GUI_AVAILABLE; then
-        zenity --question --title="$1" --text="$2"
-    else
-        read -p "$2 [y/N]: " ans
-        [[ "$ans" =~ ^[Yy]$ ]]
-    fi
-}
-
+# Menu
 gui_menu() {
-    if $GUI_AVAILABLE; then
-        zenity --list --title="$1" --width=500 --height=500 --column="ID" --column="Action" "${@:2}"
-    else
-        echo "$1"
-        shift
-        while [ "$#" -gt 0 ]; do
-            echo "$1) $2"
-            shift 2
-        done
-        read -p "Choose: " choice
-        echo "$choice"
-    fi
+    local title="$1"
+    shift
+    dialog --clear --title "$title" --menu "Choose an option:" 15 50 6 "$@"
+}
+
+# Info
+gui_info() {
+    local title="$1"
+    local msg="$2"
+    dialog --title "$title" --msgbox "$msg" 10 50
+}
+
+
+# Error message
+gui_error() {
+    local title="$1"
+    local msg="$2"
+    dialog --title "$title" --msgbox "$msg" 10 50
+}
+
+gui_input() {
+    local title="$1"
+    local prompt="$2"
+    local tmpfile
+    tmpfile=$(mktemp)
+    dialog --title "$title" --inputbox "$prompt" 10 50 2> "$tmpfile"
+    local status=$?
+    [ $status -eq 0 ] && cat "$tmpfile"
+    rm -f "$tmpfile"
+    return $status
 }

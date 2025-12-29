@@ -3,7 +3,7 @@
 mkdir -p databases
 
 # Source GUI helpers
-source "scripts/dialog_ui.sh"
+source "scripts/zenity_gui.sh"
 
 while true; do
     choice=$(gui_menu "MAIN MENU" \
