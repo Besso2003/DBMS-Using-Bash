@@ -2,61 +2,54 @@
 
 mkdir -p databases
 
-# Source shared UI helpers
-source "scripts/ui.sh"
+# Use dialog UI if available
+if command -v dialog >/dev/null 2>&1; then
+    source "scripts/dialog_ui.sh"
+else
+    source "scripts/ui.sh"
+fi
 
 while true; do
-    clear
-    echo
-    echo
-    center_text "$(echo -e "${CYAN}-------------------------------------------------- MAIN MENU --------------------------------------------------${RESET}")"
-    echo
-    center_text "$(echo -e "${YELLOW}1) Create Database${RESET}")"
-    echo
-    center_text "$(echo -e "${YELLOW}2) List Database${RESET}")"
-    echo
-    center_text "$(echo -e "${YELLOW}3) Connect To Database${RESET}")"
-    echo
-    center_text "$(echo -e "${YELLOW}4) Drop Database${RESET}")"
-    echo
-    center_text "$(echo -e "${RED}5) Exit${RESET}")"
-    echo
-    center_text "$(echo -e "${CYAN}----------------------------------------------------------------------------------------------------------------${RESET}")"
-    echo
+    # Capture choice from dialog menu
+    choice=$(dialog --clear --title "MAIN MENU" --menu "Choose an option:" 15 50 5 \
+        1 "Create Database" \
+        2 "List Database" \
+        3 "Connect To Database" \
+        4 "Drop Database" \
+        5 "Exit" \
+        2>&1 >/dev/tty)
 
-    read -p "Enter Your Choice [1-5]: " choice
-    echo
+    # Handle Cancel / Esc
+    if [ $? -ne 0 ]; then
+        dialog --title "Exit" --msgbox "Exiting..." 10 50
+        clear
+        sleep 1
+        exit 0
+    fi
 
-    case $choice in
-        1)
-           ./scripts/create_database.sh
-           ;;
-        2)
-           ./scripts/list_database.sh
-           ;;
+    case "$choice" in
+        1) 
+            ./scripts/create_database.sh ;;
+        2) 
+            ./scripts/list_database.sh ;;
         3)
-           read -p "Enter database name to connect: " db_name
-           ./scripts/connect_database.sh "$db_name"
-           ;;
+            db_name=$(dialog --title "Connect to Database" --inputbox "Enter database name:" 10 50 2>&1 >/dev/tty)
+            [ $? -ne 0 ] && continue
+            ./scripts/connect_database.sh "$db_name"
+            ;;
         4)
-           read -p "Enter database name to drop: " db_name
-           ./scripts/drop_database.sh "$db_name"
-           ;;
+            db_name=$(dialog --title "Drop Database" --inputbox "Enter database name:" 10 50 2>&1 >/dev/tty)
+            [ $? -ne 0 ] && continue
+            ./scripts/drop_database.sh "$db_name"
+            ;;
         5)
-           clear
-           echo -e "${RED}Exiting...${RESET}"
-           sleep 1
-           clear
-           exit 0
-           ;;
+            dialog --title "Exit" --msgbox "Exiting..." 10 50
+            clear
+            sleep 1
+            exit 0
+            ;;
         *)
-           echo -e "${RED}Invalid Choice! Please enter [1-5].${RESET}"
-           ;;
+            dialog --title "Error" --msgbox "Invalid choice" 10 50
+            ;;
     esac
-
-    # Only pause if the choice was not 3 (connect to DB) or if Table Menu returned
-   if [[ "$choice" -ne 3 ]]; then
-      echo
-      read -p "Press Enter to continue..." dummy
-   fi
 done
