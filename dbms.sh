@@ -33,14 +33,10 @@ while true; do
         2) 
             ./scripts/list_database.sh ;;
         3)
-            db_name=$(dialog --title "Connect to Database" --inputbox "Enter database name:" 10 50 2>&1 >/dev/tty)
-            [ $? -ne 0 ] && continue
-            ./scripts/connect_database.sh "$db_name"
+            ./scripts/connect_database.sh
             ;;
         4)
-            db_name=$(dialog --title "Drop Database" --inputbox "Enter database name:" 10 50 2>&1 >/dev/tty)
-            [ $? -ne 0 ] && continue
-            ./scripts/drop_database.sh "$db_name"
+            ./scripts/drop_database.sh 
             ;;
         5)
             dialog --title "Exit" --msgbox "Exiting..." 10 50

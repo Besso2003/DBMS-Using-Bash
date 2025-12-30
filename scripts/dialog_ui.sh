@@ -4,7 +4,7 @@
 gui_menu() {
     local title="$1"
     shift
-    dialog --clear --title "$title" --menu "Choose an option:" 15 50 6 "$@"
+    dialog --clear --title "$title" --menu "Choose an option:" 15 50 5 "$@" 
 }
 
 # Info

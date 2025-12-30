@@ -2,32 +2,27 @@
 
 db_dir="databases"
 
-# prefer script-local padding, ui.sh will provide helpers
-LEFT_PAD=10
-source "$(dirname "$0")/ui.sh"
+# Ensure databases directory exists
+mkdir -p "$db_dir"
 
-clear
-echo
-
-# Header
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-center_text "${WHITE}${BOLD}                  AVAILABLE Databases${RESET}"
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-echo
-
-# Databases list
-if [ ! -d "$db_dir" ] || [ -z "$(ls -A "$db_dir")" ]; then
-    left_text "${RED}${BOLD}No databases found.${RESET}"
+# Build message content
+if [ ! -d "$db_dir" ] || [ -z "$(ls -A "$db_dir" 2>/dev/null)" ]; then
+    message="No databases found."
 else
+    message="Available Databases:\n\n"
     count=1
     for db in "$db_dir"/*; do
         [ -d "$db" ] || continue
         printf -v num "%2d" "$count"
-        left_text "${WHITE}${BOLD}$num) $(basename "$db")${RESET}"
+        message+="$num) $(basename "$db")\n"
         ((count++))
     done
 fi
 
-echo
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-echo
+# Show dialog
+dialog --clear \
+       --title "Available Databases" \
+       --msgbox "$message" 20 60
+
+clear
+exit 0
