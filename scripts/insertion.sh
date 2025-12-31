@@ -3,116 +3,109 @@
 db_path="$1"
 tables_path="$db_path/tables"
 
-# prefer script-local padding, ui.sh will provide helpers
-LEFT_PAD=10
-source "$(dirname "$0")/ui.sh"
+# Ensure tables directory exists
+mkdir -p "$tables_path"
 
-# override left_text to optionally write to stderr (insertion uses this behavior)
-left_text() {
-    local msg="$1"
-    local stream="${2:-stdout}"
-    if [ "$stream" = "stderr" ]; then
-        printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$msg")" >&2
-    else
-        printf "%*s%s\n" "$LEFT_PAD" "" "$(echo -e "$msg")"
-    fi
+# Dialog helpers
+show_error() {
+    dialog --title "Error" --msgbox "$1" 8 50
+}
+
+show_info() {
+    dialog --title "Success" --msgbox "$1" 8 50
 }
 
 # =========================
-# Input validation
+# Select Table
 # =========================
-get_valid_input() {
-    local prompt="$1"
-    local type="$2"
-    local value
-
-    while true; do
-        read -p "$prompt" value
-
-        if [ "$type" = "int" ]; then
-            if ! [[ "$value" =~ ^-?[0-9]+$ ]]; then
-                left_text "${RED}Invalid integer. Try again.${RESET}" stderr
-                continue
-            fi
-        else
-            if [ -z "$value" ]; then
-                left_text "${RED}Value cannot be empty. Try again.${RESET}" stderr
-                continue
-            fi
-        fi
-
-        echo "$value"
-        return
-    done
-}
-
-# =========================
-# Start insert
-# =========================
-clear
-echo
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-center_text "${WHITE}${BOLD}                                         INSERT INTO TABLE                             ${RESET}"
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-echo
-
-# Get table name
 while true; do
-    read -p "$(printf '%*s' $LEFT_PAD)Enter Table Name: " table_name
-    meta_file="$tables_path/$table_name.meta"
-    data_file="$tables_path/$table_name.db"
+    TABLE_NAME=$(dialog --clear \
+        --title "Insert Into Table" \
+        --inputbox "Enter table name:" 10 50 2>&1 >/dev/tty)
 
-    if [ -z "$table_name" ]; then
-        left_text "${RED}Error: Table name cannot be empty.${RESET}" stderr
+    if [ $? -ne 0 ]; then
+        dialog --msgbox "Operation cancelled." 8 40
+        clear
+        exit 0
+    fi
+
+    TABLE_NAME=$(echo "$TABLE_NAME" | xargs)
+
+    meta_file="$tables_path/$TABLE_NAME.meta"
+    data_file="$tables_path/$TABLE_NAME.db"
+
+    if [ -z "$TABLE_NAME" ]; then
+        show_error "Table name cannot be empty."
     elif [ ! -f "$meta_file" ]; then
-        left_text "${RED}Error: Table '$table_name' does not exist.${RESET}" stderr
+        show_error "Table '$TABLE_NAME' does not exist."
     elif [ ! -f "$data_file" ]; then
-        left_text "${RED}Error: Data file for table '$table_name' does not exist.${RESET}" stderr
+        show_error "Data file for table '$TABLE_NAME' does not exist."
     else
         break
     fi
 done
 
-# Load metadata
+# =========================
+# Load Metadata
+# =========================
 source "$meta_file"
 IFS=':' read -ra col_names <<< "$names"
 IFS=':' read -ra col_types <<< "$types"
 
 row=()
-pk_value=""
 
-left_text "${YELLOW}Enter values for the new row:${RESET}"
-echo
-
-# Insert values with validation
+# =========================
+# Insert Row
+# =========================
 for ((i=0; i<columns; i++)); do
     while true; do
-        value=$(get_valid_input "$(printf '%*s' $LEFT_PAD)Enter ${col_names[i]} (${col_types[i]}): " "${col_types[i]}")
+        VALUE=$(dialog --clear \
+            --title "Insert Value" \
+            --inputbox "Enter ${col_names[i]} (${col_types[i]}):" 10 50 2>&1 >/dev/tty)
 
-        # Primary Key uniqueness validation
-        if [ $((i+1)) -eq "$pk" ]; then
-            # Primary key must be non-negative integer when type is int
-            if [[ "${col_types[i]}" = "int" && ! "$value" =~ ^[0-9]+$ ]]; then
-                left_text "${RED}Primary key must be a non-negative integer.${RESET}" stderr
-                continue
-            fi
-
-            if cut -d: -f"$pk" "$data_file" | grep -Fxq "$value"; then
-                left_text "${RED}Duplicate primary key. Enter a unique value.${RESET}" stderr
-                continue
-            fi
-            pk_value="$value"
+        if [ $? -ne 0 ]; then
+            dialog --msgbox "Operation cancelled." 8 40
+            clear
+            exit 0
         fi
 
-        row+=("$value")
+        VALUE=$(echo "$VALUE" | xargs)
+
+        # Empty check
+        if [ -z "$VALUE" ]; then
+            show_error "Value cannot be empty."
+            continue
+        fi
+
+        # Type validation
+        if [ "${col_types[i]}" = "int" ] && ! [[ "$VALUE" =~ ^-?[0-9]+$ ]]; then
+            show_error "Invalid integer value."
+            continue
+        fi
+
+        # Primary Key validation
+        if [ $((i+1)) -eq "$pk" ]; then
+            if [ "${col_types[i]}" = "int" ] && ! [[ "$VALUE" =~ ^[0-9]+$ ]]; then
+                show_error "Primary key must be a non-negative integer."
+                continue
+            fi
+
+            if cut -d: -f"$pk" "$data_file" | grep -Fxq "$VALUE"; then
+                show_error "Duplicate primary key value."
+                continue
+            fi
+        fi
+
+        row+=("$VALUE")
         break
     done
 done
 
-# Append to data file
+# =========================
+# Save Row
+# =========================
 echo "$(IFS=:; echo "${row[*]}")" >> "$data_file"
-left_text "${GREEN}Row inserted successfully into table '$table_name'.${RESET}"
-echo
 
-read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
+show_info "Row inserted successfully into table '$TABLE_NAME'."
+
 clear
