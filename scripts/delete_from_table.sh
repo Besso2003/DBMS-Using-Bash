@@ -3,65 +3,50 @@
 db_path="$1"
 tables_path="$db_path/tables"
 
-# prefer script-local padding, ui.sh will provide helpers
-LEFT_PAD=10
-source "$(dirname "$0")/ui.sh"
+mkdir -p "$tables_path"
 
-clear
-echo
-
-# Header
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-center_text "${WHITE}${BOLD}                                        DELETE FROM TABLE                              ${RESET}"
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-echo
-
-# Function: Validate input
-get_valid_input() {
-    local prompt="$1"
-    local type="$2"
-    local value
-
-    while true; do
-        read -p "$prompt" value
-
-        if [ "$type" = "int" ]; then
-                if ! [[ "$value" =~ ^-?[0-9]+$ ]]; then
-                    left_text "${RED}Invalid input. Enter a number.${RESET}" >&2
-                continue
-            fi
-        else
-            if [ -z "$value" ]; then
-                left_text "${RED}Value cannot be empty.${RESET}" >&2
-                continue
-            fi
-        fi
-
-        # ONLY the valid value goes to stdout
-        echo "$value"
-        return
-    done
+# Dialog helpers
+show_error() {
+    dialog --title "Error" --msgbox "$1" 8 50
 }
 
+show_info() {
+    dialog --title "Success" --msgbox "$1" 8 50
+}
 
-# Get Table Name
+# =========================
+# Select Table
+# =========================
 while true; do
-    read -p "$(printf '%*s' $LEFT_PAD)Enter Table Name: " table_name
-    meta_file="$tables_path/$table_name.meta"
-    data_file="$tables_path/$table_name.db"
+    TABLE_NAME=$(dialog --clear \
+        --title "Delete From Table" \
+        --inputbox "Enter table name:" 10 50 2>&1 >/dev/tty)
 
-    if [ -z "$table_name" ]; then
-        left_text "${RED}Table name cannot be empty.${RESET}"
+    if [ $? -ne 0 ]; then
+        dialog --msgbox "Operation cancelled." 8 40
+        clear
+        exit 0
+    fi
+
+    TABLE_NAME=$(echo "$TABLE_NAME" | xargs)
+
+    meta_file="$tables_path/$TABLE_NAME.meta"
+    data_file="$tables_path/$TABLE_NAME.db"
+
+    if [ -z "$TABLE_NAME" ]; then
+        show_error "Table name cannot be empty."
     elif [ ! -f "$meta_file" ]; then
-        left_text "${RED}Table '$table_name' does not exist.${RESET}"
+        show_error "Table '$TABLE_NAME' does not exist."
     elif [ ! -f "$data_file" ]; then
-        left_text "${RED}Data file for table '$table_name' does not exist.${RESET}"
+        show_error "Data file for table '$TABLE_NAME' does not exist."
     else
         break
     fi
 done
 
-# Load metadata
+# =========================
+# Load Metadata
+# =========================
 source "$meta_file"
 IFS=':' read -ra col_names <<< "$names"
 IFS=':' read -ra col_types <<< "$types"
@@ -69,98 +54,80 @@ IFS=':' read -ra col_types <<< "$types"
 tmp_file="$(mktemp)"
 trap 'rm -f "$tmp_file"' EXIT
 
-# Deletion type menu
+# =========================
+# Delete Menu
+# =========================
 while true; do
-    echo
-    left_text "${YELLOW}Delete By:${RESET}"
-    left_text "1) Primary Key"
-    left_text "2) Condition (Column = Value)"
-    left_text "3) Delete All Records"
+    CHOICE=$(dialog --clear --menu "Delete Options for $TABLE_NAME" 15 60 4 \
+        1 "Delete by Primary Key" \
+        2 "Delete by Column = Value" \
+        3 "Delete All Records" \
+        4 "Cancel" 2>&1 >/dev/tty)
 
-    choice=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Choose an option [1-3]: " "int")
-
-    if [[ "$choice" -lt 1 || "$choice" -gt 3 ]]; then
-        left_text "${RED}Invalid option. Choose [1-3].${RESET}"
-        continue
-    fi
-
-    case "$choice" in
+    case "$CHOICE" in
         1)
-            # ===== Delete by Primary Key =====
-            pk_col_name="${col_names[$((pk-1))]}"
-            # Prompt for PK value and ensure non-negative if PK is int
+            # Delete by Primary Key
+            PK_COL="${col_names[$((pk-1))]}"
             while true; do
-                pk_value=$(get_valid_input \
-                    "$(printf '%*s' $LEFT_PAD '')Enter value for Primary Key '$pk_col_name': " \
-                    "${col_types[$((pk-1))]}")
+                PK_VALUE=$(dialog --inputbox "Enter Primary Key value for '$PK_COL':" 10 50 2>&1 >/dev/tty)
+                if [ $? -ne 0 ]; then break 2; fi
+                PK_VALUE=$(echo "$PK_VALUE" | xargs)
 
-                if [[ "${col_types[$((pk-1))]}" = "int" && ! "$pk_value" =~ ^[0-9]+$ ]]; then
-                    left_text "${RED}Primary key must be a non-negative integer.${RESET}"
+                if [ "${col_types[$((pk-1))]}" = "int" ] && ! [[ "$PK_VALUE" =~ ^[0-9]+$ ]]; then
+                    show_error "Primary key must be a non-negative integer."
                     continue
                 fi
-                break
-            done
 
-            if awk -F: -v pk="$pk" -v val="$pk_value" '$pk == val {found=1} END{exit !found}' "$data_file"; then
-                awk -F: -v pk="$pk" -v val="$pk_value" '$pk != val' "$data_file" > "$tmp_file"
-                mv "$tmp_file" "$data_file"
-                echo
-                left_text "${GREEN}Record deleted successfully.${RESET}"
-                echo
-                read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
-                break
-            else
-                left_text "${RED}Primary Key not found.${RESET}"
-            fi
+                if awk -F: -v pk="$pk" -v val="$PK_VALUE" '$pk == val {found=1} END{exit !found}' "$data_file"; then
+                    awk -F: -v pk="$pk" -v val="$PK_VALUE" '$pk != val' "$data_file" > "$tmp_file"
+                    mv "$tmp_file" "$data_file"
+                    show_info "Record deleted successfully."
+                    break
+                else
+                    show_error "Primary Key not found."
+                fi
+            done
             ;;
         2)
-            # ===== Delete by Condition =====
-            left_text "${YELLOW}Choose column:${RESET}"
-            for ((i=0; i<${#col_names[@]}; i++)); do
-                left_text "$((i+1))) ${col_names[i]}"
+            # Delete by Column = Value
+            COL_MENU=()
+            for i in "${!col_names[@]}"; do
+                COL_MENU+=("$((i+1))" "${col_names[i]}")
             done
 
-            col_num=$(get_valid_input "$(printf '%*s' $LEFT_PAD '')Column number: " "int")
 
-            if [[ "$col_num" -lt 1 || "$col_num" -gt "${#col_names[@]}" ]]; then
-                left_text "${RED}Invalid column number.${RESET}"
-                continue
-            fi
+            COL_NUM=$(dialog --menu "Choose Column" 15 60 4 "${COL_MENU[@]}" 2>&1 >/dev/tty)
+            if [ $? -ne 0 ]; then break; fi
 
-            col_name="${col_names[$((col_num-1))]}"
-            col_type="${col_types[$((col_num-1))]}"
-            col_value=$(get_valid_input \
-                "$(printf '%*s' $LEFT_PAD '')Enter value for $col_name ($col_type): " \
-                "$col_type")
+            COL_IDX=$((COL_NUM-1))
+            COL_NAME="${col_names[$COL_IDX]}"
+            COL_TYPE="${col_types[$COL_IDX]}"
 
-            if awk -F: -v c="$col_num" -v v="$col_value" '$c == v {found=1} END{exit !found}' "$data_file"; then
-                awk -F: -v c="$col_num" -v v="$col_value" '$c != v' "$data_file" > "$tmp_file"
+            COL_VALUE=$(dialog --inputbox "Enter value for $COL_NAME ($COL_TYPE):" 10 50 2>&1 >/dev/tty)
+            if [ $? -ne 0 ]; then break; fi
+            COL_VALUE=$(echo "$COL_VALUE" | xargs)
+
+            if awk -F: -v c="$COL_NUM" -v v="$COL_VALUE" '$c == v {found=1} END{exit !found}' "$data_file"; then
+                awk -F: -v c="$COL_NUM" -v v="$COL_VALUE" '$c != v' "$data_file" > "$tmp_file"
                 mv "$tmp_file" "$data_file"
-                echo
-                left_text "${GREEN}Record(s) where '$col_name' = '$col_value' deleted successfully.${RESET}"
-                echo
-                read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
-                break
+                show_info "Record(s) where '$COL_NAME' = '$COL_VALUE' deleted successfully."
             else
-                left_text "${RED}No matching records found.${RESET}"
+                show_error "No matching records found."
             fi
             ;;
         3)
-            # ===== Delete All =====
-            echo -en "$(printf '%*s' $LEFT_PAD)${YELLOW}Are you sure you want to delete ALL records in '$table_name'? [y/N]: ${RESET}"
-            read confirm
-
-            if [[ "$confirm" =~ ^[Yy]$ ]]; then
+            # Delete All Records
+            dialog --yesno "Are you sure you want to delete ALL records in '$TABLE_NAME'?" 10 50
+            if [ $? -eq 0 ]; then
                 > "$data_file"
-                echo
-                left_text "${GREEN}All records deleted.${RESET}"
-                echo
-                read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
-                break
+                show_info "All records deleted."
             else
-                echo
-                left_text "${RED}Deletion cancelled.${RESET}"
+                show_error "Deletion cancelled."
             fi
+            ;;
+        4|*)
+            clear
+            exit 0
             ;;
     esac
 done
