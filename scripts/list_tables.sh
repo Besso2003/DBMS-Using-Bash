@@ -3,35 +3,30 @@
 db_path="$1"
 tables_path="$db_path/tables"
 
+# Load dialog or fallback UI
+if command -v dialog >/dev/null 2>&1; then
+    source "scripts/dialog_ui.sh"
+else
+    source "scripts/ui.sh"
+fi
 
+# Build tables list message
+msg=""
 
-LEFT_PAD=10
-source "$(dirname "$0")/ui.sh"
-
-echo
-
-# Header
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-center_text "${WHITE}${BOLD}                  AVAILABLE TABLES${RESET}"
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-echo
-
-# Tables list
 if [ ! -d "$tables_path" ] || [ -z "$(ls -A "$tables_path"/*.meta 2>/dev/null)" ]; then
-    left_text "${YELLOW}${BOLD}No tables found.${RESET}"
+    msg="No tables found."
 else
     count=1
     for meta_file in "$tables_path"/*.meta; do
         [ -f "$meta_file" ] || continue
         table_name=$(basename "$meta_file" .meta)
-        printf -v num "%2d" "$count"
-        left_text "${WHITE}${BOLD}$num) $table_name${RESET}"
+        msg+="$count) $table_name\n"
         ((count++))
     done
 fi
 
-echo
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-echo
+# Show tables in dialog
+dialog --title "AVAILABLE TABLES" \
+       --msgbox "$msg" 15 50
 
-read -p "$(printf '%*s' $LEFT_PAD)Press Enter to return to Table Menu..."
+clear

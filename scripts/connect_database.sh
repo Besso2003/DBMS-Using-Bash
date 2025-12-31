@@ -29,5 +29,10 @@ while true; do
 
     # Call table menu
     ./scripts/table_menu.sh "$db_path" "$db_name"
+    status=$?
 
+    # If table menu says "back to main menu"
+    if [ "$status" -eq 10 ]; then
+        break   # exit connect_database loop → MAIN MENU
+    fi
 done

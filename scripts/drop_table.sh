@@ -3,100 +3,95 @@
 db_path="$1"
 tables_path="$db_path/tables"
 
-LEFT_PAD=20
-source "$(dirname "$0")/ui.sh"
+# Colors
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+CYAN="\e[36m"
+WHITE="\e[37m"
+BOLD="\e[1m"
+RESET="\e[0m"
 
-echo
+# Helper dialogs
+show_error() {
+    dialog --title "Error" --msgbox "$1" 8 60
+}
 
-# Header (uses same style as list_tables)
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-center_text "${WHITE}${BOLD}                  DROP TABLE${RESET}"
-center_text "${CYAN}${BOLD}=============================================================================================================================${RESET}"
-echo
+show_info() {
+    dialog --title "Info" --msgbox "$1" 8 60
+}
 
 # Validate database path
 if [ -z "$db_path" ] || [ ! -d "$db_path" ]; then
-    left_text "${RED}${BOLD}Error:${RESET} Database path missing or does not exist." 
-    echo
-    left_text "Usage: ./scripts/drop_table.sh <database_path>"
-    echo
+    show_error "Database path missing or does not exist.\nUsage: ./scripts/drop_table.sh <database_path>"
+    clear
     exit 1
 fi
 
 # Check for tables
-if [ ! -d "$tables_path" ] || [ -z "$(ls -A "$tables_path"/*.meta 2>/dev/null)" ]; then
-    left_text "${YELLOW}${BOLD}No tables found in this database.${RESET}"
-    echo
-    left_prompt "Press Enter to return to Table Menu..."
-    read -r
+TABLES=()
+for meta_file in "$tables_path"/*.meta; do
+    [ -f "$meta_file" ] || continue
+    TABLES+=("$(basename "$meta_file" .meta)")
+done
+
+if [ ${#TABLES[@]} -eq 0 ]; then
+    show_info "No tables found in this database."
+    clear
     exit 0
 fi
 
-# Show tables (brief list)
-count=1
-for meta_file in "$tables_path"/*.meta; do
-    [ -f "$meta_file" ] || continue
-    table_name=$(basename "$meta_file" .meta)
-    printf -v num "%2d" "$count"
-    left_text "${WHITE}${BOLD}$num) $table_name${RESET}"
-    ((count++))
+# Select table to drop using dialog menu
+MENU_ITEMS=()
+for i in "${!TABLES[@]}"; do
+    MENU_ITEMS+=("$((i+1))" "${TABLES[$i]}")
 done
 
-echo
+TABLE_CHOICE=$(dialog --clear \
+    --title "Drop Table" \
+    --menu "Select a table to drop:" 15 50 ${#TABLES[@]} "${MENU_ITEMS[@]}" 2>&1 >/dev/tty)
 
-# Prompt for table name to drop
+if [ $? -ne 0 ]; then
+    dialog --title "Cancelled" --msgbox "Operation cancelled." 8 40
+    clear
+    exit 0
+fi
+
+TABLE_NAME="${TABLES[$((TABLE_CHOICE-1))]}"
+meta_file="$tables_path/$TABLE_NAME.meta"
+data_file="$tables_path/$TABLE_NAME.db"
+
+# Confirm deletion
 while true; do
-    left_prompt "${WHITE}${BOLD}Enter table name to drop: ${RESET}"
-    read table_name
+    CONFIRM=$(dialog --clear \
+        --title "Confirm Deletion" \
+        --inputbox "DANGEROUS ACTION:\nThis will permanently delete table '$TABLE_NAME' and its data.\n\nType the table name exactly to confirm deletion, or CANCEL to abort:" 12 60 2>&1 >/dev/tty)
 
-    if [ -z "$table_name" ]; then
-        left_text "${RED}Error:${RESET} Table name cannot be empty."
-        continue
-    fi
-
-    meta_file="$tables_path/$table_name.meta"
-    data_file="$tables_path/$table_name.db"
-
-    if [ ! -f "$meta_file" ]; then
-        left_text "${RED}Error:${RESET} Table '$table_name' does not exist." 
-        continue
-    fi
-
-    break
-done
-
-echo
-left_text "${YELLOW}DANGEROUS ACTION:${RESET} This will permanently delete table '$table_name' and its data."
-echo
-left_text "Type the table name exactly to confirm deletion, or type CANCEL to abort."
-echo
-
-while true; do
-    left_prompt "${WHITE}${BOLD}${table_name} > ${RESET}"
-    read -r confirm
-    confirm=$(echo "$confirm" | xargs)
-
-    if [ "$confirm" = "CANCEL" ]; then
-        echo
-        left_text "${GREEN}Deletion aborted.${RESET}"
-        echo
-        left_prompt "Press Enter to return to Table Menu..."
-        read -r
+    if [ $? -ne 0 ]; then
+        dialog --title "Cancelled" --msgbox "Deletion aborted." 8 40
+        clear
         exit 0
     fi
 
-    if [ "$confirm" = "$table_name" ]; then
+    CONFIRM=$(echo "$CONFIRM" | xargs)
+
+    if [ "$CONFIRM" = "CANCEL" ]; then
+        show_info "Deletion aborted."
+        clear
+        exit 0
+    fi
+
+    if [ "$CONFIRM" = "$TABLE_NAME" ]; then
         if rm -f -- "$meta_file" "$data_file"; then
-            left_text "${GREEN}Table '$table_name' deleted successfully.${RESET}"
-            echo
-            left_prompt "Press Enter to return to Table Menu..."
-            read -r
+            show_info "Table '$TABLE_NAME' deleted successfully."
+            clear
             exit 0
         else
-            left_text "${RED}Error: Failed to delete table '$table_name'.${RESET}"
+            show_error "Failed to delete table '$TABLE_NAME'."
+            clear
             exit 1
         fi
     else
-        left_text "${RED}Names do not match. Type the table name to confirm, or CANCEL to abort.${RESET}"
+        show_error "Names do not match. Type the table name to confirm, or CANCEL to abort."
     fi
 done
