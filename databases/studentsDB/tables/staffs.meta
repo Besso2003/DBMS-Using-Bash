@@ -1,0 +1,4 @@
+pk=1
+columns=2
+types=int:string
+names=id:name
