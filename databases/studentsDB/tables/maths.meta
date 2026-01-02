@@ -1,4 +1,0 @@
-pk=1
-columns=3
-types=int:string:int
-names=id:name:age
