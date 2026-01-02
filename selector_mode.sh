@@ -1,6 +1,7 @@
 #!/bin/bash
 
 RED="\e[31m"
+GREEN="\e[32m"
 RESET="\e[0m"
 
 # ==========================
@@ -26,7 +27,15 @@ while true; do
             ;;
         2)
             if ! command -v dialog >/dev/null 2>&1; then
+                echo
                 echo -e "${RED}Dialog is not installed.${RESET}"
+                echo
+                echo -e "${GREEN}You can install it using:${RESET}"
+                echo -e "  sudo apt install dialog    # Debian/Ubuntu"
+                echo -e "  sudo yum install dialog    # RedHat/CentOS/Fedora"
+                echo -e "  sudo dnf install dialog    # Fedora"
+                echo -e "  brew install dialog        # macOS (Homebrew)"
+                echo
                 read -p "Press Enter to continue..."
                 continue
             fi
