@@ -1,12 +1,20 @@
 #!/bin/bash
 
+# ==========================
+# Select From Table (GUI)
+# ==========================
+
 db_path="$1"
 tables_path="$db_path/tables"
-
-# Ensure tables directory exists
 mkdir -p "$tables_path"
 
-# Dialog helpers
+# Use SCRIPT_DIR from selector or fallback to default GUI folder
+SCRIPT_DIR=${SCRIPT_DIR:-scripts/gui}
+source "$SCRIPT_DIR/dialog_ui.sh"
+
+# --------------------------
+# Helper dialogs
+# --------------------------
 show_error() {
     dialog --title "Error" --msgbox "$1" 8 50
 }
@@ -15,19 +23,16 @@ show_info() {
     dialog --title "Info" --msgbox "$1" 8 50
 }
 
-# =========================
-# Choose Table
-# =========================
+# --------------------------
+# Select Table
+# --------------------------
 while true; do
     TABLE_NAME=$(dialog --clear \
         --title "Select Table" \
-        --inputbox "Enter table name:" 10 50 2>&1 >/dev/tty)
+        --inputbox "Enter table name:" 10 50 \
+        2>&1 >/dev/tty)
 
-    if [ $? -ne 0 ]; then
-        dialog --msgbox "Operation cancelled." 8 40
-        clear
-        exit 0
-    fi
+    [ $? -ne 0 ] && exit 0  # Cancel pressed
 
     TABLE_NAME=$(echo "$TABLE_NAME" | xargs)
     meta_file="$tables_path/$TABLE_NAME.meta"
@@ -42,16 +47,16 @@ while true; do
     fi
 done
 
-# =========================
-# Load metadata
-# =========================
+# --------------------------
+# Load Metadata
+# --------------------------
 source "$meta_file"
 IFS=':' read -ra col_names <<< "$names"
 IFS=':' read -ra col_types <<< "$types"
 
-# =========================
+# --------------------------
 # Select Mode
-# =========================
+# --------------------------
 while true; do
     MODE=$(dialog --clear \
         --title "Select Mode" \
@@ -60,11 +65,7 @@ while true; do
         2 "Select With Condition" \
         2>&1 >/dev/tty)
 
-    if [ $? -ne 0 ]; then
-        dialog --msgbox "Operation cancelled." 8 40
-        clear
-        exit 0
-    fi
+    [ $? -ne 0 ] && exit 0
 
     if [[ "$MODE" == "1" || "$MODE" == "2" ]]; then
         break
@@ -73,7 +74,9 @@ while true; do
     fi
 done
 
-# Function to display rows in dialog box
+# --------------------------
+# Function to display rows
+# --------------------------
 display_rows() {
     local rows="$1"
     tmpfile=$(mktemp)
@@ -82,10 +85,9 @@ display_rows() {
     rm -f "$tmpfile"
 }
 
-
-# =========================
+# --------------------------
 # SELECT ALL
-# =========================
+# --------------------------
 if [ "$MODE" -eq 1 ]; then
     all_data="$names"$'\n'"$(cat "$data_file")"
     display_rows "$all_data"
@@ -93,9 +95,9 @@ if [ "$MODE" -eq 1 ]; then
     exit 0
 fi
 
-# =========================
+# --------------------------
 # SELECT WITH CONDITION
-# =========================
+# --------------------------
 COL_OPTIONS=()
 for ((i=0; i<${#col_names[@]}; i++)); do
     COL_OPTIONS+=($((i+1)) "${col_names[i]}")
@@ -108,11 +110,7 @@ while true; do
         "${COL_OPTIONS[@]}" \
         2>&1 >/dev/tty)
 
-    if [ $? -ne 0 ]; then
-        dialog --msgbox "Operation cancelled." 8 40
-        clear
-        exit 0
-    fi
+    [ $? -ne 0 ] && exit 0
 
     if [[ "$COL_NUM" -ge 1 && "$COL_NUM" -le "${#col_names[@]}" ]]; then
         break
@@ -125,13 +123,15 @@ COL_INDEX="$COL_NUM"
 COL_NAME="${col_names[$((COL_NUM-1))]}"
 COL_TYPE="${col_types[$((COL_NUM-1))]}"
 
-# =========================
-# Apply filtering
-# =========================
+# --------------------------
+# Apply Filtering
+# --------------------------
 if [ "$COL_TYPE" = "int" ]; then
     while true; do
         START_VAL=$(dialog --inputbox "Enter start value for $COL_NAME:" 10 50 2>&1 >/dev/tty)
-        END_VAL=$(dialog --inputbox "Enter end value for $COL_NAME (or leave empty for single value):" 10 50 2>&1 >/dev/tty)
+        [ $? -ne 0 ] && exit 0
+        END_VAL=$(dialog --inputbox "Enter end value for $COL_NAME (leave empty for single value):" 10 50 2>&1 >/dev/tty)
+        [ $? -ne 0 ] && exit 0
 
         START_VAL=$(echo "$START_VAL" | xargs)
         END_VAL=$(echo "$END_VAL" | xargs)
@@ -151,13 +151,14 @@ if [ "$COL_TYPE" = "int" ]; then
     filtered_rows=$(awk -F':' -v c="$COL_INDEX" -v s="$START_VAL" -v e="$END_VAL" '($c+0) >= (s+0) && ($c+0) <= (e+0)' "$data_file")
 else
     VAL=$(dialog --inputbox "Enter value for $COL_NAME:" 10 50 2>&1 >/dev/tty)
+    [ $? -ne 0 ] && exit 0
     VAL=$(echo "$VAL" | xargs)
     filtered_rows=$(awk -F':' -v c="$COL_INDEX" -v v="$VAL" '$c == v' "$data_file")
 fi
 
-# =========================
+# --------------------------
 # Display filtered results
-# =========================
+# --------------------------
 all_data="$names"$'\n'"$filtered_rows"
 display_rows "$all_data"
 clear

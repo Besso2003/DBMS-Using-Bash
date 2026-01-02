@@ -1,17 +1,22 @@
 #!/bin/bash
 
-db_path="$1"
+# ==========================
+# Table Menu (GUI)
+# ==========================
 
-# Load dialog or fallback UI
-if command -v dialog >/dev/null 2>&1; then
-    source "scripts/dialog_ui.sh"
-else
-    source "scripts/ui.sh"
-fi
+db_path="$1"
+db_name="$(basename "$db_path")"
+
+# Ensure SCRIPT_DIR exists (selector-safe)
+SCRIPT_DIR=${SCRIPT_DIR:-scripts/gui}
+
+# Load dialog helpers
+source "$SCRIPT_DIR/dialog_ui.sh"
 
 while true; do
-    # Dialog menu
-    choice=$(gui_menu "TABLE MENU" \
+    choice=$(dialog --clear \
+        --title "TABLE MENU - [$db_name]" \
+        --menu "Choose an option:" 18 60 10 \
         1 "Create Table" \
         2 "List Tables" \
         3 "Drop Table" \
@@ -22,38 +27,38 @@ while true; do
         8 "Back to Main Menu" \
         2>&1 >/dev/tty)
 
-    # Handle Cancel / ESC
+    # ESC / Cancel → back to main menu
     if [ $? -ne 0 ]; then
         exit 10
     fi
 
     case "$choice" in
         1)
-            ./scripts/create_table.sh "$db_path"
+            "$SCRIPT_DIR/create_table.sh" "$db_path"
             ;;
         2)
-            ./scripts/list_tables.sh "$db_path"
+            "$SCRIPT_DIR/list_tables.sh" "$db_path"
             ;;
         3)
-            ./scripts/drop_table.sh "$db_path"
+            "$SCRIPT_DIR/drop_table.sh" "$db_path"
             ;;
         4)
-            ./scripts/insertion.sh "$db_path"
+            "$SCRIPT_DIR/insertion.sh" "$db_path"
             ;;
         5)
-            ./scripts/select.sh "$db_path"
+            "$SCRIPT_DIR/select.sh" "$db_path"
             ;;
         6)
-            ./scripts/delete_from_table.sh "$db_path"
+            "$SCRIPT_DIR/delete_from_table.sh" "$db_path"
             ;;
         7)
-            ./scripts/update.sh "$db_path"
+            "$SCRIPT_DIR/update.sh" "$db_path"
             ;;
         8)
             exit 10
             ;;
         *)
-            gui_error "Error" "Invalid choice!"
+            dialog --title "Error" --msgbox "Invalid choice!" 8 40
             ;;
     esac
 done

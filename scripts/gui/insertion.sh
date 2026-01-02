@@ -1,12 +1,20 @@
 #!/bin/bash
 
+# ==========================
+# Insert Row (GUI)
+# ==========================
+
 db_path="$1"
 tables_path="$db_path/tables"
-
-# Ensure tables directory exists
 mkdir -p "$tables_path"
 
-# Dialog helpers
+# Use SCRIPT_DIR from selector or fallback to default GUI folder
+SCRIPT_DIR=${SCRIPT_DIR:-scripts/gui}
+source "$SCRIPT_DIR/dialog_ui.sh"
+
+# --------------------------
+# Helper dialogs
+# --------------------------
 show_error() {
     dialog --title "Error" --msgbox "$1" 8 50
 }
@@ -21,13 +29,10 @@ show_info() {
 while true; do
     TABLE_NAME=$(dialog --clear \
         --title "Insert Into Table" \
-        --inputbox "Enter table name:" 10 50 2>&1 >/dev/tty)
+        --inputbox "Enter table name:" 10 50 \
+        2>&1 >/dev/tty)
 
-    if [ $? -ne 0 ]; then
-        dialog --msgbox "Operation cancelled." 8 40
-        clear
-        exit 0
-    fi
+    [ $? -ne 0 ] && exit 0  # User pressed cancel
 
     TABLE_NAME=$(echo "$TABLE_NAME" | xargs)
 
@@ -61,13 +66,10 @@ for ((i=0; i<columns; i++)); do
     while true; do
         VALUE=$(dialog --clear \
             --title "Insert Value" \
-            --inputbox "Enter ${col_names[i]} (${col_types[i]}):" 10 50 2>&1 >/dev/tty)
+            --inputbox "Enter ${col_names[i]} (${col_types[i]}):" 10 50 \
+            2>&1 >/dev/tty)
 
-        if [ $? -ne 0 ]; then
-            dialog --msgbox "Operation cancelled." 8 40
-            clear
-            exit 0
-        fi
+        [ $? -ne 0 ] && exit 0  # User pressed cancel
 
         VALUE=$(echo "$VALUE" | xargs)
 
@@ -85,11 +87,6 @@ for ((i=0; i<columns; i++)); do
 
         # Primary Key validation
         if [ $((i+1)) -eq "$pk" ]; then
-            if [ "${col_types[i]}" = "int" ] && ! [[ "$VALUE" =~ ^[0-9]+$ ]]; then
-                show_error "Primary key must be a non-negative integer."
-                continue
-            fi
-
             if cut -d: -f"$pk" "$data_file" | grep -Fxq "$VALUE"; then
                 show_error "Duplicate primary key value."
                 continue

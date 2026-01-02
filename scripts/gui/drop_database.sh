@@ -1,25 +1,40 @@
 #!/bin/bash
 
+# ==========================
+# Drop Database (GUI)
+# ==========================
+
+# Use SCRIPT_DIR from selector_mode.sh or fallback
+SCRIPT_DIR=${SCRIPT_DIR:-scripts/gui}
+
+DB_BASE_PATH="databases"
 
 while true; do
+    db_name=$(dialog \
+        --title "Drop Database" \
+        --inputbox "Enter database name:" 10 50 \
+        2>&1 >/dev/tty)
 
-    db_name=$(dialog --title "Drop Database" --inputbox "Enter database name:" 10 50 2>&1 >/dev/tty)
-    [ $? -ne 0 ] && exit 0  
+    # Cancel / ESC
+    if [ $? -ne 0 ]; then
+        exit 0
+    fi
 
-    db_path="databases/$db_name"
-    # Validate input
+    # Trim spaces
+    db_name=$(echo "$db_name" | xargs)
+    db_path="$DB_BASE_PATH/$db_name"
+
+    # Empty name
     if [ -z "$db_name" ]; then
-        dialog --title "Error" --msgbox "Database name is required." 10 50
-        clear
+        dialog --title "Error" --msgbox "Database name is required." 8 50
         continue
     fi
 
+    # Database does not exist
     if [ ! -d "$db_path" ]; then
-        dialog --title "Error" --msgbox "Database '$db_name' does not exist." 10 50
-        clear
+        dialog --title "Error" --msgbox "Database '$db_name' does not exist." 8 50
         continue
     fi
-
 
     # Dangerous warning
     dialog --clear \
@@ -27,30 +42,19 @@ while true; do
         --yesno "This will permanently delete the database '$db_name' and all its tables.\n\nDo you want to continue?" \
         12 60
 
-    # Cancel / No
+    # No / Cancel
     if [ $? -ne 0 ]; then
-        clear
         exit 0
     fi
-
-
-
 
     # Delete database
     if rm -rf -- "$db_path"; then
         dialog --title "Success" \
-            --msgbox "Database '$db_name' deleted successfully." \
-            10 50
+            --msgbox "Database '$db_name' deleted successfully." 8 50
+        exit 0
     else
         dialog --title "Error" \
-            --msgbox "Failed to delete database '$db_name'." \
-            10 50
-        clear
+            --msgbox "Failed to delete database '$db_name'." 8 50
         exit 1
     fi
-
-    clear
-    exit 0
-
-
 done

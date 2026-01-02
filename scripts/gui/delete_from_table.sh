@@ -1,11 +1,20 @@
 #!/bin/bash
 
+# ==========================
+# Delete From Table (GUI)
+# ==========================
+
 db_path="$1"
 tables_path="$db_path/tables"
-
 mkdir -p "$tables_path"
 
-# Dialog helpers
+# Use SCRIPT_DIR from selector or fallback to default GUI folder
+SCRIPT_DIR=${SCRIPT_DIR:-scripts/gui}
+source "$SCRIPT_DIR/dialog_ui.sh"
+
+# --------------------------
+# Helper dialogs
+# --------------------------
 show_error() {
     dialog --title "Error" --msgbox "$1" 8 50
 }
@@ -14,49 +23,43 @@ show_info() {
     dialog --title "Success" --msgbox "$1" 8 50
 }
 
-# =========================
+# --------------------------
 # Select Table
-# =========================
+# --------------------------
 while true; do
     TABLE_NAME=$(dialog --clear \
         --title "Delete From Table" \
-        --inputbox "Enter table name:" 10 50 2>&1 >/dev/tty)
+        --inputbox "Enter table name:" 10 50 \
+        2>&1 >/dev/tty)
 
-    if [ $? -ne 0 ]; then
-        dialog --msgbox "Operation cancelled." 8 40
-        clear
-        exit 0
-    fi
+    [ $? -ne 0 ] && exit 0  # Cancel pressed
 
     TABLE_NAME=$(echo "$TABLE_NAME" | xargs)
-
     meta_file="$tables_path/$TABLE_NAME.meta"
     data_file="$tables_path/$TABLE_NAME.db"
 
     if [ -z "$TABLE_NAME" ]; then
         show_error "Table name cannot be empty."
-    elif [ ! -f "$meta_file" ]; then
+    elif [ ! -f "$meta_file" ] || [ ! -f "$data_file" ]; then
         show_error "Table '$TABLE_NAME' does not exist."
-    elif [ ! -f "$data_file" ]; then
-        show_error "Data file for table '$TABLE_NAME' does not exist."
     else
         break
     fi
 done
 
-# =========================
+# --------------------------
 # Load Metadata
-# =========================
+# --------------------------
 source "$meta_file"
 IFS=':' read -ra col_names <<< "$names"
 IFS=':' read -ra col_types <<< "$types"
 
-tmp_file="$(mktemp)"
+tmp_file=$(mktemp)
 trap 'rm -f "$tmp_file"' EXIT
 
-# =========================
+# --------------------------
 # Delete Menu
-# =========================
+# --------------------------
 while true; do
     CHOICE=$(dialog --clear --menu "Delete Options for $TABLE_NAME" 15 60 4 \
         1 "Delete by Primary Key" \
@@ -64,15 +67,18 @@ while true; do
         3 "Delete All Records" \
         4 "Cancel" 2>&1 >/dev/tty)
 
+    [ $? -ne 0 ] && break  # Cancel pressed
+
     case "$CHOICE" in
         1)
             # Delete by Primary Key
             PK_COL="${col_names[$((pk-1))]}"
             while true; do
                 PK_VALUE=$(dialog --inputbox "Enter Primary Key value for '$PK_COL':" 10 50 2>&1 >/dev/tty)
-                if [ $? -ne 0 ]; then break 2; fi
+                [ $? -ne 0 ] && break 2  # Cancel pressed
                 PK_VALUE=$(echo "$PK_VALUE" | xargs)
 
+                # Validate primary key type
                 if [ "${col_types[$((pk-1))]}" = "int" ] && ! [[ "$PK_VALUE" =~ ^[0-9]+$ ]]; then
                     show_error "Primary key must be a non-negative integer."
                     continue
@@ -95,16 +101,15 @@ while true; do
                 COL_MENU+=("$((i+1))" "${col_names[i]}")
             done
 
-
-            COL_NUM=$(dialog --menu "Choose Column" 15 60 4 "${COL_MENU[@]}" 2>&1 >/dev/tty)
-            if [ $? -ne 0 ]; then break; fi
+            COL_NUM=$(dialog --menu "Choose Column" 15 60 5 "${COL_MENU[@]}" 2>&1 >/dev/tty)
+            [ $? -ne 0 ] && continue  # Cancel pressed
 
             COL_IDX=$((COL_NUM-1))
             COL_NAME="${col_names[$COL_IDX]}"
             COL_TYPE="${col_types[$COL_IDX]}"
 
             COL_VALUE=$(dialog --inputbox "Enter value for $COL_NAME ($COL_TYPE):" 10 50 2>&1 >/dev/tty)
-            if [ $? -ne 0 ]; then break; fi
+            [ $? -ne 0 ] && continue
             COL_VALUE=$(echo "$COL_VALUE" | xargs)
 
             if awk -F: -v c="$COL_NUM" -v v="$COL_VALUE" '$c == v {found=1} END{exit !found}' "$data_file"; then
@@ -126,8 +131,7 @@ while true; do
             fi
             ;;
         4|*)
-            clear
-            exit 0
+            break
             ;;
     esac
 done

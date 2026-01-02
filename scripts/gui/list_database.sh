@@ -1,17 +1,24 @@
 #!/bin/bash
 
-db_dir="databases"
+# ==========================
+# List Databases (GUI)
+# ==========================
+
+# Use SCRIPT_DIR from selector_mode.sh or fallback
+SCRIPT_DIR=${SCRIPT_DIR:-scripts/gui}
+
+DB_DIR="databases"
 
 # Ensure databases directory exists
-mkdir -p "$db_dir"
+mkdir -p "$DB_DIR"
 
-# Build message content
-if [ ! -d "$db_dir" ] || [ -z "$(ls -A "$db_dir" 2>/dev/null)" ]; then
+# Build message
+if [ -z "$(ls -A "$DB_DIR" 2>/dev/null)" ]; then
     message="No databases found."
 else
     message="Available Databases:\n\n"
     count=1
-    for db in "$db_dir"/*; do
+    for db in "$DB_DIR"/*; do
         [ -d "$db" ] || continue
         printf -v num "%2d" "$count"
         message+="$num) $(basename "$db")\n"
@@ -25,4 +32,3 @@ dialog --clear \
        --msgbox "$message" 20 60
 
 clear
-exit 0
