@@ -87,7 +87,7 @@ chmod -R 755 /DBMS-Using-Bash
 Note: All databases will be stored in the databases/ folder created automatically by the script.
 
 ## Usage / Navigation
-### Main Menu Options
+### Database Menu Options
 
 | No. | Option               | Description                                      |
 |-----|---------------------|--------------------------------------------------|
@@ -98,20 +98,18 @@ Note: All databases will be stored in the databases/ folder created automaticall
 | 5   | Exit                | Exit the application.                            |
 
 
-### Database Menu (after connecting to a database)
-1) Create Table – Define a new table with column names, datatypes, and primary key.
+### Table Menu (After Connecting to a Database)
 
-2) List Tables – List all tables in the connected database.
-
-3) Drop Table – Delete a table.
-
-4) Insert into Table – Add new records with datatype and primary key validation.
-
-5) Select From Table – Display records (all or filtered by conditions).
-
-6) Delete From Table – Remove records (by primary key or condition or delete all).
-
-7) Update Table – Modify existing records with datatype validation.
+| No. | Option              | Description                                                                 |
+|-----|--------------------|-----------------------------------------------------------------------------|
+| 1   | Create Table       | Define a new table with column names, datatypes, and a primary key.        |
+| 2   | List Tables        | Display all tables in the connected database.                              |
+| 3   | Drop Table         | Delete an existing table.                                                  |
+| 4   | Insert into Table  | Add new records with datatype and primary key validation.                  |
+| 5   | Select From Table  | Retrieve and display records (all or filtered by conditions).              |
+| 6   | Delete From Table  | Remove records (by primary key, condition, or delete all).                 |
+| 7   | Update Table       | Modify existing records with datatype validation.                          |
+| 8   | Exit               | Return to the main menu.                                                   |
 
 ### Input Validations
 - Integer columns accept only numbers.
