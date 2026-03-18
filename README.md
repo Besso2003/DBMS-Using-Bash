@@ -87,6 +87,14 @@ chmod -R 755 /DBMS-Using-Bash
 Note: All databases will be stored in the databases/ folder created automatically by the script.
 
 ## Usage / Navigation
+### Selector Mode Menu
+
+| No. | Option | Description                                      |
+|-----|--------|--------------------------------------------------|
+| 1   | CLI    | Use the Command Line Interface version.          |
+| 2   | GUI    | Use the Graphical User Interface version.        |
+| 3   | Exit   | Exit the application.                            |
+
 ### Database Menu Options
 
 | No. | Option               | Description                                      |
@@ -120,11 +128,31 @@ Note: All databases will be stored in the databases/ folder created automaticall
 
 - Filter conditions support numeric ranges and exact string matches.
 
-## Authors / Team
+## 🤝 Contributors 🎖️
 
-This project was developed by:
-
-- Bassant Ali Kamal Ali – DevOps Engineering  
-- Ibrahim Elsayed – DevOps Engineering
-
-Both contributors collaborated to design, implement, and test this Bash Shell Script Database Management System (DBMS).
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Besso2003">
+        <img src="https://github.com/Besso2003.png" width="100px;" alt="Bassant Ali Kamal"/>
+        <br />
+        <sub><b>Bassant Ali Kamal</b></sub>
+      </a>
+      <br />
+      ⚙️ ☁️ 🐧
+      <br />
+      <sub><i>DevOps Engineer</i></sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Ibrahim-Elsayed-27">
+        <img src="https://github.com/Ibrahim-Elsayed-27.png" width="100px;" alt="Ibrahim Elsayed"/>
+        <br />
+        <sub><b>Ibrahim Elsayed</b></sub>
+      </a>
+      <br />
+      ⚙️ ☁️ 🐧
+      <br />
+      <sub><i>DevOps Engineer</i></sub>
+    </td>
+  </tr>
+</table>
