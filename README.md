@@ -1,6 +1,6 @@
 # Bash Shell Script Database Management System (DBMS)
 
-A **Command-Line Interface (CLI) Database Management System** built entirely using Bash scripting.  
+A **Command-Line Interface (CLI) & (GUI) Database Management System** built entirely using Bash scripting.  
 This project allows users to **create databases, manage tables, and perform CRUD operations** directly on disk using a simple menu-driven interface.
 
 
@@ -10,7 +10,8 @@ This project allows users to **create databases, manage tables, and perform CRUD
   - Create new databases
   - List existing databases
   - Connect to a specific database
-  - Drop a database (to be implemented)
+  - Drop a database
+  - Exit
 
 - **Table Management**
   - Create tables with custom columns and datatypes
@@ -20,6 +21,7 @@ This project allows users to **create databases, manage tables, and perform CRUD
   - Select data (all or with conditions, numeric/string filters)
   - Delete records (by primary key or condition)
   - Update records (with datatype and primary key validation)
+  - Exit
 
 - **CLI Interface**
   - Menu-driven interface for easy navigation
@@ -30,19 +32,33 @@ This project allows users to **create databases, manage tables, and perform CRUD
 ## Project Structure
 ```text
 Bash_Project/
-├── dbms.sh                 # Main menu script
+├── selector_mode.sh        # selector mode menu script
 ├── README.md               # Project documentation
 ├── scripts/                # Folder containing all scripts
-│   ├── create_database.sh
-│   ├── list_database.sh
-│   ├── connect_database.sh
-│   ├── create_table.sh
-│   ├── list_tables.sh
-│   ├── drop_table.sh
-│   ├── insert_into_table.sh
-│   ├── select_from_table.sh
-│   ├── delete_from_table.sh
-│   └── update_table.sh
+│   ├── cli/                # CLI version scripts
+│   │   ├── create_database.sh
+│   │   ├── list_database.sh
+│   │   ├── connect_database.sh
+│   │   ├── create_table.sh
+│   │   ├── list_tables.sh
+│   │   ├── drop_table.sh
+│   │   ├── insert_into_table.sh
+│   │   ├── select_from_table.sh
+│   │   ├── delete_from_table.sh
+│   │   └── update_table.sh
+│   │
+│   └── gui/                # GUI version scripts
+│       ├── create_database.sh
+│       ├── list_database.sh
+│       ├── connect_database.sh
+│       ├── create_table.sh
+│       ├── list_tables.sh
+│       ├── drop_table.sh
+│       ├── insert_into_table.sh
+│       ├── select_from_table.sh
+│       ├── delete_from_table.sh
+│       └── update_table.sh
+│
 └── databases/              # Folder where all databases are stored
 ```
 
@@ -52,19 +68,19 @@ Bash_Project/
 
 ```bash
 git clone <https://github.com/Besso2003/DBMS-Using-Bash>
-cd Bash_Project
+cd DBMS-Using-Bash
 ```
 
 2. Give execute permission to the main script (if needed)
 
 ```bash
-chmod +x dbms.sh
+chmod -R 755 /DBMS-Using-Bash
 ```
 
 3. Run the main menu:
 
 ```bash
-./dbms.sh
+./selector_moder.sh
 ```
 
 
@@ -72,15 +88,14 @@ Note: All databases will be stored in the databases/ folder created automaticall
 
 ## Usage / Navigation
 ### Main Menu Options
-1) Create Database – Create a new database (folder).
 
-2) List Database – Show all available databases.
-
-3) Connect To Database – Enter a database to manage its tables.
-
-4) Drop Database – Delete a database (not implemented yet).
-
-5) Exit – Exit the application.
+| No. | Option               | Description                                      |
+|-----|---------------------|--------------------------------------------------|
+| 1   | Create Database     | Create a new database (folder).                  |
+| 2   | List Databases      | Display all available databases.                 |
+| 3   | Connect to Database | Access a database to manage its tables.          |
+| 4   | Drop Database       | Delete an existing database.                     |
+| 5   | Exit                | Exit the application.                            |
 
 
 ### Database Menu (after connecting to a database)
